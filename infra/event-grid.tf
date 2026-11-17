@@ -29,6 +29,26 @@ resource "azurerm_eventgrid_system_topic" "service_bus" {
   tags = local.tags
 }
 
+# Phase 2: what each upload account lets in from public networks (EVENT_GRID_DESTINATION_ACCESS, settings.tf). No IP or
+# virtual network rules: the apps use the private endpoints, and Event Grid is let in as a trusted service and, for its
+# system topic, as a resource instance (Q5). The storage module has no network rules setting, hence this resource.
+resource "azurerm_storage_account_network_rules" "event_grid_destination" {
+  for_each = {
+    for account, system_topic_id in {
+      upload2 = azurerm_eventgrid_system_topic.storage_queue.id
+      upload3 = azurerm_eventgrid_system_topic.service_bus.id
+    } : account => system_topic_id if var.private_networking
+  }
+
+  storage_account_id = module.storage_accounts[each.key].id
+  default_action     = local.event_grid_destination_default_action
+  bypass             = ["AzureServices"]
+
+  private_link_access {
+    endpoint_resource_id = each.value
+  }
+}
+
 resource "azurerm_role_assignment" "eventgrid_storage_queue_sender" {
   # Event Grid's check of its delivery identity refused this role on the queue (Q8); on the account it passes.
   scope                = module.storage_accounts["upload2"].id

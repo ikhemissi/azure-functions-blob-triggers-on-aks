@@ -1,10 +1,21 @@
-# Phase-dependent infrastructure settings and function scaling values.
+# Phase-dependent infrastructure settings (private networking, what Event Grid delivers into) and function scaling values.
 # Environment values are supplied by azd so the same Terraform root can run both phases.
 
 variable "private_networking" {
   description = "Enable private endpoints, Premium services, and a private AKS API server."
   type        = bool
   default     = false
+}
+
+variable "event_grid_destination_access" {
+  description = "Phase 2 only (ignored in phase 1): public network access of what Event Grid delivers into, upload accounts 2 and 3 and the Service Bus namespace. enabled: all networks; trusted: selected networks with no rules, trusted services only; disabled: off."
+  type        = string
+  default     = "trusted"
+
+  validation {
+    condition     = contains(["enabled", "trusted", "disabled"], var.event_grid_destination_access)
+    error_message = "event_grid_destination_access must be enabled, trusted or disabled."
+  }
 }
 
 variable "aks_node_size" {
@@ -41,6 +52,18 @@ variable "keda_messages_per_replica" {
   description = "Target messages per replica for KEDA scalers."
   type        = number
   default     = 5
+}
+
+locals {
+  # Phase 1 keeps every Event Grid destination public, whatever the setting says.
+  event_grid_destination_access = var.private_networking ? var.event_grid_destination_access : "enabled"
+  # disabled is what Q5 (c) and Q6 (c) test: not claimed to work until an experiment shows Event Grid delivering.
+  is_event_grid_destination_public_access_enabled = local.event_grid_destination_access != "disabled"
+  event_grid_destination_default_action           = local.event_grid_destination_access == "enabled" ? "Allow" : "Deny"
+}
+
+output "EVENT_GRID_DESTINATION_ACCESS" {
+  value = local.event_grid_destination_access
 }
 
 output "BLOB_POLLING_REPLICAS" {

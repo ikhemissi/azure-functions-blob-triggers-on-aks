@@ -1,4 +1,4 @@
-# The virtual network and every phase 1/2 subnet, plus private DNS for phase 2.
+# The virtual network and every phase 1/2 subnet, plus private DNS for phase 2 and its private endpoints' addresses.
 # The private endpoint object stays known during planning so endpoint counts do not depend on unknown subnet ids.
 
 module "network" {
@@ -26,13 +26,13 @@ module "network" {
       address_prefix = "10.60.6.64/27"
     }
   }
-  private_dns_zones = [
+  private_dns_zones = var.private_networking ? [
     "privatelink.azurecr.io",
     "privatelink.blob.core.windows.net",
     "privatelink.queue.core.windows.net",
     "privatelink.table.core.windows.net",
     "privatelink.servicebus.windows.net",
-  ]
+  ] : []
 }
 
 locals {
@@ -44,4 +44,37 @@ locals {
     subnet_id            = module.network.subnet_ids["private-endpoints"]
     private_dns_zone_ids = module.network.private_dns_zone_ids
   } : null
+}
+
+# The modules create their private endpoints (pe-<account>-<service>, pe-<registry>) without exposing their addresses:
+# read back by name once the modules are applied.
+data "azurerm_private_endpoint_connection" "module_endpoints" {
+  for_each = toset(var.private_networking ? concat(
+    flatten([
+      for account in local.storage_accounts : [
+        for service in account.private_endpoint_services : "pe-${account.name}-${service}"
+      ]
+    ]),
+    ["pe-${local.container_registry_name}"],
+  ) : [])
+
+  name                = each.key
+  resource_group_name = azurerm_resource_group.main.name
+
+  depends_on = [module.storage_accounts, module.container_registry]
+}
+
+# Private endpoint name -> its first IP address (the registry's endpoint also has one for its data endpoint), to check
+# that names resolve to them from inside the virtual network.
+output "PRIVATE_ENDPOINT_IPS" {
+  value = jsonencode(merge(
+    {
+      for name, endpoint in data.azurerm_private_endpoint_connection.module_endpoints :
+      name => endpoint.private_service_connection[0].private_ip_address
+    },
+    {
+      for endpoint in azurerm_private_endpoint.service_bus :
+      endpoint.name => endpoint.private_service_connection[0].private_ip_address
+    },
+  ))
 }
