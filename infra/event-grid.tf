@@ -30,7 +30,8 @@ resource "azurerm_eventgrid_system_topic" "service_bus" {
 }
 
 resource "azurerm_role_assignment" "eventgrid_storage_queue_sender" {
-  scope                = azurerm_storage_queue.blob_events.id
+  # Event Grid's check of its delivery identity refused this role on the queue (Q8); on the account it passes.
+  scope                = module.storage_accounts["upload2"].id
   role_definition_name = "Storage Queue Data Message Sender"
   principal_id         = azurerm_eventgrid_system_topic.storage_queue.identity[0].principal_id
   principal_type       = "ServicePrincipal"
