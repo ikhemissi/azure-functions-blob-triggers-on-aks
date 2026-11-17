@@ -1,0 +1,11 @@
+{
+  "version": "2.0",
+  "extensions": {
+    "queues": {
+      // The Event Grid queue example decodes Base64; verify actual delivery in Q5.
+      // https://learn.microsoft.com/azure/communication-services/how-tos/router-sdk/subscribe-events
+      "messageEncoding": "base64",
+      "maxDequeueCount": 5
+    }
+  }
+}
