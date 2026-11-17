@@ -11,11 +11,6 @@ module "container_registry" {
   private_endpoint              = local.private_endpoint
 }
 
-data "azurerm_user_assigned_identity" "registry_pull" {
-  name                = "id-${module.container_registry.name}-pull"
-  resource_group_name = azurerm_resource_group.main.name
-  depends_on          = [module.container_registry]
-}
 
 output "AZURE_CONTAINER_REGISTRY_ENDPOINT" {
   value = module.container_registry.login_server
