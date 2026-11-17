@@ -27,6 +27,11 @@ run "subnets_and_zones" {
   }
 
   assert {
+    condition     = output.subnet_address_prefixes["jumpbox"] == "10.0.3.0/27"
+    error_message = "Each subnet's address prefix is an output, known at plan time."
+  }
+
+  assert {
     condition     = azurerm_subnet.main["container-apps"].delegation[0].service_delegation[0].name == "Microsoft.App/environments"
     error_message = "The container-apps subnet is delegated to Container Apps."
   }

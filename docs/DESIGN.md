@@ -58,7 +58,7 @@ Virtual network `10.60.0.0/16`:
 - Azure CNI Overlay with Cilium (network policies), OIDC issuer and Workload Identity on, the KEDA add-on on (`workload_autoscaler_profile.keda_enabled`).
 - Entra ID with Azure RBAC, local accounts off; the deployer gets *Azure Kubernetes Service RBAC Cluster Admin*.
 - API Server VNet Integration on, public access limited to `AKS_AUTHORIZED_IP_RANGES` in phase 1, private in phase 2.
-- The kubelet identity gets *AcrPull* on the registry.
+- The kubelet identity is a user-assigned identity created in `aks.tf` (no data source: `azd down` deletes the resource group before Terraform's destroy reads anything), with *AcrPull* on the registry.
 
 ## Identities and roles
 
@@ -90,6 +90,7 @@ Common to the three apps:
 | `FUNCTIONS_WORKER_RUNTIME` | `dotnet-isolated` |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | from Terraform (not a secret; the exporter authenticates with the identity) |
 | `PROCESSED_TABLE_URI` | `https://<host account>.table.core.windows.net/processed` |
+| `UPLOADS_BLOB_SERVICE_URI` | apps 2 and 3: `https://<their upload account>.blob.core.windows.net/`; an event whose blob URL is elsewhere is rejected as malformed |
 | `POD_NAME`, `POD_NAMESPACE` | from the downward API |
 
 Trigger connections (the binding's `Connection` property is the prefix):
@@ -106,7 +107,7 @@ Apps 2 and 3 read the blob named in the event with `BlobServiceClient` and the s
 
 1. Validate the input: for Event Grid events (apps 2 and 3), event type `Microsoft.Storage.BlobCreated`, subject `/blobServices/default/containers/uploads/blobs/<name>`, the URL's account and container; malformed input is logged and not retried (app 2: completes; app 3: dead-lettered with a reason).
 2. Read the blob's properties (size, ETag, version ID if any) and its first 1 KB.
-3. Idempotency key: `<account>/<container>/<blob name>/<ETag or version ID>/process`; insert one entity in the `processed` table (partition key: the app; row key: a SHA-256 hex of the key). A `409 Conflict` means already processed: log a duplicate and stop.
+3. Idempotency key: `<account>/<container>/<blob name>/<ETag or version ID>/process`; once the blob was read, insert one entity in the `processed` table (partition key: the app; row key: a SHA-256 hex of the key). A `409 Conflict` means already processed: log it as a duplicate. Recording after the work means a crash before it leads to a retry, never to a lost blob.
 4. Log one structured line per step (JSON console logs and OpenTelemetry to Application Insights) with: app, trigger, blob name, URI, size, ETag/version, event time (Event Grid) or trigger time, start and end of processing, pod name, invocation ID, `idempotencyKey`, `duplicate` (true/false), `latencyMs` (end of processing minus the blob's creation time).
 
 Shared code (event parsing, idempotency, logging fields) lives in `src/BlobProcessing`, referenced by the three apps.
@@ -129,5 +130,7 @@ The Functions host listens on port 80. Liveness and readiness: `GET /admin/host/
 | Kubernetes and azd | `k8s/<app>/*.yaml`, `azure.yaml` (`services:`), `infra/hooks/postdeploy/`, `scripts/*.sh`, `Makefile` | issue "Kubernetes, azd and test scripts" |
 | CI | `.github/workflows/ci.yml` | after the three above |
 | Docs, questions, experiments | `docs/**`, `README.md` | the maintainer |
+
+`infra/network.tf` sets `local.network.subnet_ids` and `local.network.subnet_address_prefixes` straight from the network module's outputs (keyed by subnet name, as the shared blocks expect), and code reads `local.network.subnet_ids["aks-nodes"]`.
 
 Terraform outputs (azd values) the Kubernetes manifests and scripts read: `AKS_NAME`, `AZURE_AKS_CLUSTER_NAME`, `AZURE_CONTAINER_REGISTRY_ENDPOINT`, `UPLOADS_ACCOUNT_1..3`, `HOST_ACCOUNT_1..3`, `SERVICE_BUS_NAMESPACE`, `<APP>_CLIENT_ID` (`BLOB_POLLING_CLIENT_ID`, `QUEUE_TRIGGERED_CLIENT_ID`, `SERVICEBUS_TRIGGERED_CLIENT_ID`), `APPLICATIONINSIGHTS_CONNECTION_STRING`, `BLOB_POLLING_REPLICAS`, `KEDA_MIN_REPLICAS`, `KEDA_MAX_REPLICAS`, `KEDA_MESSAGES_PER_REPLICA`.
