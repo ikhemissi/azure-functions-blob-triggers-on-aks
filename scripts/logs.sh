@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Prints recent logs from the selected Function app's pods.
-# Reads the current Kubernetes context in the design's functions namespace.
+# Reads this environment's cluster (scripts/kubeconfig.sh) in the design's functions namespace.
 set -euo pipefail
 
 [[ $# -eq 1 ]] || {
@@ -14,6 +14,10 @@ case "$1" in
     exit 2
     ;;
 esac
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=scripts/kubeconfig.sh
+source "$SCRIPT_DIR/kubeconfig.sh"
 
 kubectl logs \
   --namespace functions \

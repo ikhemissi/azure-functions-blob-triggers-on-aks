@@ -4,8 +4,11 @@ SHELL := /bin/bash
 APP ?= blob-polling
 COUNT ?= 1
 BLOB_PREFIX ?=
+# Options passed to a scenario, e.g. make scenario-02 SCENARIO_ARGS="--count 50" (see the script's --help).
+SCENARIO_ARGS ?=
 
-.PHONY: upload-test-blob measure-latency replicas logs integration-test lint validate-k8s
+.PHONY: upload-test-blob measure-latency replicas logs integration-test lint validate-k8s scenarios \
+	scenario-01 scenario-02 scenario-03 scenario-04 scenario-05 scenario-06 scenario-07 scenario-08 scenario-09 scenario-10
 
 upload-test-blob:
 	bash ./scripts/upload-test-blob.sh "$(APP)" "$(COUNT)"
@@ -22,8 +25,41 @@ logs:
 integration-test:
 	bash ./scripts/integration-test.sh
 
+# The quick scenarios; the others change the cluster or take long (see their --help).
+scenarios: scenario-01 scenario-02 scenario-04 scenario-08
+
+scenario-01:
+	bash ./scripts/scenarios/01-one-blob.sh $(SCENARIO_ARGS)
+
+scenario-02:
+	bash ./scripts/scenarios/02-concurrent-blobs.sh $(SCENARIO_ARGS)
+
+scenario-03:
+	bash ./scripts/scenarios/03-large-batch-scale.sh $(SCENARIO_ARGS)
+
+scenario-04:
+	bash ./scripts/scenarios/04-duplicate-delivery.sh $(SCENARIO_ARGS)
+
+scenario-05:
+	bash ./scripts/scenarios/05-pod-restart.sh $(SCENARIO_ARGS)
+
+scenario-06:
+	bash ./scripts/scenarios/06-rolling-deployment.sh $(SCENARIO_ARGS)
+
+scenario-07:
+	bash ./scripts/scenarios/07-dependency-unavailable.sh $(SCENARIO_ARGS)
+
+scenario-08:
+	bash ./scripts/scenarios/08-poison-and-dead-letter.sh $(SCENARIO_ARGS)
+
+scenario-09:
+	bash ./scripts/scenarios/09-historical-blobs.sh $(SCENARIO_ARGS)
+
+scenario-10:
+	bash ./scripts/scenarios/10-host-id-stability.sh $(SCENARIO_ARGS)
+
 lint:
-	shellcheck -x scripts/*.sh infra/hooks/*/*.sh
+	shellcheck -x scripts/*.sh scripts/scenarios/*.sh infra/hooks/*/*.sh
 
 validate-k8s:
 	export BLOB_POLLING_CLIENT_ID=00000000-0000-0000-0000-000000000001; \
