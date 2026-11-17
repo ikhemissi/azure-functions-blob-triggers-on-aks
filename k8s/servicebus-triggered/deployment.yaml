@@ -46,6 +46,8 @@ spec:
               value: ${APPLICATIONINSIGHTS_CONNECTION_STRING}
             - name: PROCESSED_TABLE_URI
               value: https://${HOST_ACCOUNT_3}.table.core.windows.net/processed
+            - name: UPLOADS_BLOB_SERVICE_URI
+              value: https://${UPLOADS_ACCOUNT_3}.blob.core.windows.net/
             - name: BlobEventsServiceBus__fullyQualifiedNamespace
               value: ${SERVICE_BUS_NAMESPACE}.servicebus.windows.net
             - name: BlobEventsServiceBus__credential
