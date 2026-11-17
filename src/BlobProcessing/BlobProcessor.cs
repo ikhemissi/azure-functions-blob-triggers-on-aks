@@ -12,7 +12,6 @@ public sealed class BlobProcessor(IProcessedStore processedStore, ILogger<BlobPr
     {
         var started = DateTimeOffset.UtcNow;
         var properties = (await blob.GetPropertiesAsync(cancellationToken: cancellationToken)).Value;
-        VerifyEventETag(eventETag, properties.ETag);
         var version = properties.VersionId ?? properties.ETag.ToString();
         var key = Idempotency.Key(blob.AccountName, blob.Name, version);
         using var scope = logger.BeginScope(new Dictionary<string, object?>
@@ -30,6 +29,12 @@ public sealed class BlobProcessor(IProcessedStore processedStore, ILogger<BlobPr
             ["invocationId"] = invocationId,
             ["idempotencyKey"] = key
         });
+        if (!EventETagMatches(eventETag, properties.ETag))
+        {
+            logger.LogInformation("Blob event superseded: eventETag={eventETag}, currentETag={currentETag}",
+                eventETag, properties.ETag.ToString());
+            return;
+        }
         logger.LogInformation("Blob properties read; processing started");
 
         if (properties.ContentLength > 0)
@@ -39,7 +44,16 @@ public sealed class BlobProcessor(IProcessedStore processedStore, ILogger<BlobPr
                 Range = new HttpRange(0, Math.Min(1024, properties.ContentLength)),
                 Conditions = new BlobRequestConditions { IfMatch = properties.ETag }
             };
-            var download = await blob.DownloadStreamingAsync(options, cancellationToken);
+            Response<BlobDownloadStreamingResult> download;
+            try
+            {
+                download = await blob.DownloadStreamingAsync(options, cancellationToken);
+            }
+            catch (RequestFailedException exception) when (eventETag is not null && exception.Status == 412)
+            {
+                logger.LogInformation("Blob event superseded during read: eventETag={eventETag}", eventETag);
+                return;
+            }
             await using var content = download.Value.Content;
             await content.CopyToAsync(Stream.Null, cancellationToken);
         }
@@ -50,10 +64,7 @@ public sealed class BlobProcessor(IProcessedStore processedStore, ILogger<BlobPr
             duplicate, ended, (ended - properties.CreatedOn).TotalMilliseconds);
     }
 
-    public static void VerifyEventETag(string? eventETag, ETag currentETag)
-    {
-        if (eventETag is not null &&
-            !string.Equals(eventETag.Trim('"'), currentETag.ToString().Trim('"'), StringComparison.Ordinal))
-            throw new InvalidOperationException("The event refers to a different blob version.");
-    }
+    private static bool EventETagMatches(string? eventETag, ETag currentETag) =>
+        eventETag is null ||
+        string.Equals(eventETag.Trim('"'), currentETag.ToString().Trim('"'), StringComparison.Ordinal);
 }
