@@ -39,3 +39,47 @@ hooks:
       run: bash ./infra/hooks/run.sh postdown
       interactive: false
       continueOnError: false
+
+services:
+  blob-polling:
+    host: aks
+    language: dotnet
+    project: ./src/BlobPollingFunction
+    docker:
+      path: ./Dockerfile
+      context: ../..
+      # Built in the registry (ACR Tasks): no local Docker, and the same path once the registry is private.
+      remoteBuild: true
+    k8s:
+      deploymentPath: ../../k8s/blob-polling
+      namespace: functions
+      deployment:
+        name: blob-polling
+  queue-triggered:
+    host: aks
+    language: dotnet
+    project: ./src/QueueTriggeredFunction
+    docker:
+      path: ./Dockerfile
+      context: ../..
+      # Built in the registry (ACR Tasks): no local Docker, and the same path once the registry is private.
+      remoteBuild: true
+    k8s:
+      deploymentPath: ../../k8s/queue-triggered
+      namespace: functions
+      deployment:
+        name: queue-triggered
+  servicebus-triggered:
+    host: aks
+    language: dotnet
+    project: ./src/ServiceBusTriggeredFunction
+    docker:
+      path: ./Dockerfile
+      context: ../..
+      # Built in the registry (ACR Tasks): no local Docker, and the same path once the registry is private.
+      remoteBuild: true
+    k8s:
+      deploymentPath: ../../k8s/servicebus-triggered
+      namespace: functions
+      deployment:
+        name: servicebus-triggered
