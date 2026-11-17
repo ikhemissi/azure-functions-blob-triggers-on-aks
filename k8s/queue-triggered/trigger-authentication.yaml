@@ -1,0 +1,9 @@
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: queue-triggered
+  namespace: functions
+spec:
+  podIdentity:
+    provider: azure-workload
+    identityId: ${QUEUE_TRIGGERED_CLIENT_ID}
