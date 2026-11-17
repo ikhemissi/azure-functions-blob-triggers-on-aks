@@ -15,7 +15,7 @@ Three Azure Functions apps (.NET 10, isolated worker, in Linux containers on AKS
 ## Phases
 
 1. **Public endpoints, own virtual network** (`PRIVATE_NETWORKING=false`, the default): AKS nodes in our subnet, the API server public but limited to the deployer's IP (`AKS_AUTHORIZED_IP_RANGES`), storage, Service Bus (Standard) and the registry (Basic) on public endpoints with Entra authentication only (no keys, no SAS, no connection strings). `azd up` from a laptop. Proves the apps, Workload Identity, host IDs, KEDA and the trigger behaviour.
-2. **Private** (`PRIVATE_NETWORKING=true`): private endpoints and private DNS for every storage account (blob, queue, table), Service Bus (Premium) and the registry (Premium); public network access off or limited to trusted services, as each Event Grid test allows; the API server private; deployment and administration through a Bastion jumpbox in the virtual network. The same tests run again.
+2. **Private** (`PRIVATE_NETWORKING=true`): private endpoints and private DNS for every storage account (the services its clients use, see [Phase 2 network](#phase-2-network)), Service Bus (Premium) and the registry (Premium); public network access off or limited to trusted services, as each Event Grid test allows (`EVENT_GRID_DESTINATION_ACCESS`); the API server private; deployment and administration through a Bastion jumpbox in the virtual network. The same tests run again.
 3. **Comparison:** the table in the README from measured results, the cost, the ADRs.
 
 Every setting that differs between the phases depends on `var.private_networking` in Terraform; nothing else changes between them.
@@ -51,6 +51,30 @@ Virtual network `10.60.0.0/16`:
 | `private-endpoints` | `10.60.5.0/24` | phase 2 |
 | `AzureBastionSubnet` | `10.60.6.0/26` | phase 2 |
 | `jumpbox` | `10.60.6.64/27` | phase 2 |
+
+## Phase 2 network
+
+What `PRIVATE_NETWORKING=true` changes; with `false`, none of it exists and everything stays as in phase 1. The private DNS zones (`privatelink.{blob,queue,table}.core.windows.net`, `privatelink.servicebus.windows.net`, `privatelink.azurecr.io`) exist only in phase 2, linked to the virtual network.
+
+| Resource | Private endpoints (`pe-<resource>[-<service>]`, in `private-endpoints`) | Public network access |
+|---|---|---|
+| Host accounts 1 to 3 | blob, queue, table | disabled |
+| Upload account 1 | blob, queue | disabled |
+| Upload account 2 (queue `blob-events`, `eventgrid-deadletter`) | blob, queue | `EVENT_GRID_DESTINATION_ACCESS` |
+| Upload account 3 (`eventgrid-deadletter`) | blob | `EVENT_GRID_DESTINATION_ACCESS` |
+| Service Bus namespace (Premium, 1 messaging unit) | namespace | `EVENT_GRID_DESTINATION_ACCESS` |
+| Registry (Premium) | registry | disabled; trusted services and ACR Tasks bypass the network rules (Q11, to verify) |
+| AKS API server | (API Server VNet Integration) | private, no authorized IP ranges |
+
+`EVENT_GRID_DESTINATION_ACCESS` (phase 2 only, default `trusted`) is what Event Grid delivers into (Q5, Q6):
+
+| Value | Public network access | Default action | Bypass |
+|---|---|---|---|
+| `enabled` | enabled, all networks | Allow | storage `AzureServices` and a resource instance rule per Event Grid system topic; Service Bus trusted services |
+| `trusted` | enabled, selected networks, no IP or virtual network rules | Deny | the same |
+| `disabled` | disabled | Deny | the same (not claimed to work until an experiment shows it) |
+
+Network security groups (`nsg-aks-nodes-<env>`, `nsg-private-endpoints-<env>`) on `aks-nodes` and `private-endpoints`: allow what the cluster (nodes, pods, the API server subnet, Azure Load Balancer) and the private endpoints (HTTPS, AMQP from the virtual network) need, deny the rest inbound from the internet. `AzureBastionSubnet` and `jumpbox` get theirs with the Bastion block.
 
 ## AKS
 
@@ -126,11 +150,11 @@ The Functions host listens on port 80. Liveness and readiness: `GET /admin/host/
 | Area | Files | Owner |
 |---|---|---|
 | Apps | `src/**`, `tests/**`, `BlobTriggers.slnx`, `src/*/Dockerfile` | issue "Function apps" |
-| Infrastructure | `infra/*.tf` except `main.tf`, `providers.tf`, `monitoring.tf` (block files), `infra/modules/<new>/`, `infra/main.tfvars.json` | issue "Infrastructure, phase 1" |
+| Infrastructure | `infra/*.tf` except `main.tf`, `providers.tf`, `monitoring.tf` (block files), `infra/modules/<new>/`, `infra/tests/`, `infra/main.tfvars.json` | issue "Infrastructure, phase 1"; phase 2 parts: issue "Phase 2 infrastructure" |
 | Kubernetes and azd | `k8s/<app>/*.yaml`, `azure.yaml` (`services:`), `infra/hooks/postdeploy/`, `scripts/*.sh`, `Makefile` | issue "Kubernetes, azd and test scripts" |
 | CI | `.github/workflows/ci.yml` | after the three above |
 | Docs, questions, experiments | `docs/**`, `README.md` | the maintainer |
 
 `infra/network.tf` sets `local.network.subnet_ids` and `local.network.subnet_address_prefixes` straight from the network module's outputs (keyed by subnet name, as the shared blocks expect), and code reads `local.network.subnet_ids["aks-nodes"]`.
 
-Terraform outputs (azd values) the Kubernetes manifests and scripts read: `AKS_NAME`, `AZURE_AKS_CLUSTER_NAME`, `AZURE_CONTAINER_REGISTRY_ENDPOINT`, `UPLOADS_ACCOUNT_1..3`, `HOST_ACCOUNT_1..3`, `SERVICE_BUS_NAMESPACE`, `<APP>_CLIENT_ID` (`BLOB_POLLING_CLIENT_ID`, `QUEUE_TRIGGERED_CLIENT_ID`, `SERVICEBUS_TRIGGERED_CLIENT_ID`), `APPLICATIONINSIGHTS_CONNECTION_STRING`, `BLOB_POLLING_REPLICAS`, `KEDA_MIN_REPLICAS`, `KEDA_MAX_REPLICAS`, `KEDA_MESSAGES_PER_REPLICA`.
+Terraform outputs (azd values) the Kubernetes manifests and scripts read: `AKS_NAME`, `AZURE_AKS_CLUSTER_NAME`, `AZURE_CONTAINER_REGISTRY_ENDPOINT`, `UPLOADS_ACCOUNT_1..3`, `HOST_ACCOUNT_1..3`, `SERVICE_BUS_NAMESPACE`, `<APP>_CLIENT_ID` (`BLOB_POLLING_CLIENT_ID`, `QUEUE_TRIGGERED_CLIENT_ID`, `SERVICEBUS_TRIGGERED_CLIENT_ID`), `APPLICATIONINSIGHTS_CONNECTION_STRING`, `BLOB_POLLING_REPLICAS`, `KEDA_MIN_REPLICAS`, `KEDA_MAX_REPLICAS`, `KEDA_MESSAGES_PER_REPLICA`; for phase 2, `EVENT_GRID_DESTINATION_ACCESS` (the value in effect: `enabled` in phase 1) and `PRIVATE_ENDPOINT_IPS` (JSON: private endpoint name → IP address; `{}` in phase 1).
