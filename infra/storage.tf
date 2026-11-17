@@ -34,8 +34,8 @@ resource "azurerm_storage_container" "uploads" {
 }
 
 resource "azurerm_storage_queue" "blob_events" {
-  name                 = "blob-events"
-  storage_account_name = module.storage_accounts["upload2"].name
+  name               = "blob-events"
+  storage_account_id = module.storage_accounts["upload2"].id
 }
 
 resource "azurerm_storage_container" "eventgrid_deadletter" {
@@ -49,8 +49,8 @@ resource "azurerm_storage_container" "eventgrid_deadletter" {
 resource "azurerm_storage_table" "processed" {
   for_each = toset(["host1", "host2", "host3"])
 
-  name                 = "processed"
-  storage_account_name = module.storage_accounts[each.key].name
+  name               = "processed"
+  storage_account_id = module.storage_accounts[each.key].id
 }
 
 output "UPLOADS_ACCOUNT_1" {

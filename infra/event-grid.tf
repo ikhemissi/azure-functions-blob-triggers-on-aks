@@ -57,6 +57,19 @@ resource "azurerm_role_assignment" "eventgrid_service_bus_deadletter_writer" {
   principal_type       = "ServicePrincipal"
 }
 
+# Event Grid checks its identity's access to the destination and the dead-letter container when a subscription is
+# created; new role assignments take a minute or two to apply, so the subscriptions wait for them.
+resource "time_sleep" "eventgrid_roles" {
+  create_duration = "120s"
+
+  depends_on = [
+    azurerm_role_assignment.eventgrid_storage_queue_sender,
+    azurerm_role_assignment.eventgrid_storage_deadletter_writer,
+    azurerm_role_assignment.eventgrid_service_bus_sender,
+    azurerm_role_assignment.eventgrid_service_bus_deadletter_writer,
+  ]
+}
+
 resource "azurerm_eventgrid_system_topic_event_subscription" "storage_queue" {
   name                = "to-storage-queue"
   resource_group_name = azurerm_resource_group.main.name
@@ -88,10 +101,7 @@ resource "azurerm_eventgrid_system_topic_event_subscription" "storage_queue" {
     type = "SystemAssigned"
   }
 
-  depends_on = [
-    azurerm_role_assignment.eventgrid_storage_queue_sender,
-    azurerm_role_assignment.eventgrid_storage_deadletter_writer,
-  ]
+  depends_on = [time_sleep.eventgrid_roles]
 }
 
 resource "azurerm_eventgrid_system_topic_event_subscription" "service_bus" {
@@ -122,8 +132,5 @@ resource "azurerm_eventgrid_system_topic_event_subscription" "service_bus" {
     type = "SystemAssigned"
   }
 
-  depends_on = [
-    azurerm_role_assignment.eventgrid_service_bus_sender,
-    azurerm_role_assignment.eventgrid_service_bus_deadletter_writer,
-  ]
+  depends_on = [time_sleep.eventgrid_roles]
 }
