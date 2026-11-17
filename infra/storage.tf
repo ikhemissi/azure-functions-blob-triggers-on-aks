@@ -46,11 +46,15 @@ resource "azurerm_storage_container" "eventgrid_deadletter" {
   container_access_type = "private"
 }
 
-resource "azurerm_storage_table" "processed" {
+# The idempotency records' tables, created through Resource Manager: azurerm_storage_table also sets the table's access
+# policies through the data plane with the account's keys, which are disabled here.
+resource "azapi_resource" "processed_table" {
   for_each = toset(["host1", "host2", "host3"])
 
-  name               = "processed"
-  storage_account_id = module.storage_accounts[each.key].id
+  type      = "Microsoft.Storage/storageAccounts/tableServices/tables@2023-05-01"
+  name      = "processed"
+  parent_id = "${module.storage_accounts[each.key].id}/tableServices/default"
+  body      = {}
 }
 
 output "UPLOADS_ACCOUNT_1" {
