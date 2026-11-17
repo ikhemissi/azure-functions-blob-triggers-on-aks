@@ -1,0 +1,36 @@
+{
+  "composition": "spike",
+  "source": {
+    "commit": "1b081f09555f6fd8a98c344d9c8bf9b4eb9bfa11",
+    "describe": "v0.3.0-53-g1b081f0",
+    "dirty": false
+  },
+  "generated_at": "2026-11-17T17:33:57+00:00",
+  "blocks": [
+    "azure-root",
+    "monitoring"
+  ],
+  "modules": [
+    "monitoring",
+    "network",
+    "container-registry",
+    "storage-account"
+  ],
+  "answers": {
+    "project_name": "azure-functions-blob-triggers-on-aks",
+    "title": "Azure Functions on AKS: three ways to trigger on a blob upload",
+    "question": "Which way of triggering Azure Functions on AKS after a blob upload (the polling Blob trigger, Event Grid to a Storage queue, or Event Grid to Service Bus) works best with private networking, identity-only access and KEDA scaling, and at what latency, cost and operational effort?",
+    "time_box": "3 phases, stop and report after each",
+    "azure_stack": false,
+    "litellm_gateway": false,
+    "apim_gateway": false,
+    "azure_base": false,
+    "azure_core": true,
+    "notes_mcp": false,
+    "chat_ui": false,
+    "foundry_agents": false,
+    "environment": "aksfunc-dev",
+    "location": "francecentral",
+    "author": "Iheb Khemissi"
+  }
+}
