@@ -24,6 +24,6 @@ public sealed class QueueTrigger(BlobProcessor processor, DefaultAzureCredential
         }
 
         await processor.ProcessAsync(FunctionServices.BlobFor(blobEvent, credential), "queue-triggered",
-            "storage-queue", context.InvocationId, blobEvent.EventTime, cancellationToken);
+            "storage-queue", context.InvocationId, blobEvent.EventTime, cancellationToken, blobEvent.ETag);
     }
 }

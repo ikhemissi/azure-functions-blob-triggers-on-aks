@@ -8,10 +8,11 @@ namespace BlobProcessing;
 public sealed class BlobProcessor(IProcessedStore processedStore, ILogger<BlobProcessor> logger)
 {
     public async Task ProcessAsync(BlobClient blob, string app, string trigger, string invocationId,
-        DateTimeOffset eventTime, CancellationToken cancellationToken)
+        DateTimeOffset eventTime, CancellationToken cancellationToken, string? eventETag = null)
     {
         var started = DateTimeOffset.UtcNow;
         var properties = (await blob.GetPropertiesAsync(cancellationToken: cancellationToken)).Value;
+        VerifyEventETag(eventETag, properties.ETag);
         var version = properties.VersionId ?? properties.ETag.ToString();
         var key = Idempotency.Key(blob.AccountName, blob.Name, version);
         using var scope = logger.BeginScope(new Dictionary<string, object?>
@@ -29,6 +30,7 @@ public sealed class BlobProcessor(IProcessedStore processedStore, ILogger<BlobPr
             ["invocationId"] = invocationId,
             ["idempotencyKey"] = key
         });
+        logger.LogInformation("Blob properties read; processing started");
 
         if (properties.ContentLength > 0)
         {
@@ -41,9 +43,17 @@ public sealed class BlobProcessor(IProcessedStore processedStore, ILogger<BlobPr
             await using var content = download.Value.Content;
             await content.CopyToAsync(Stream.Null, cancellationToken);
         }
+        logger.LogInformation("Blob prefix read");
         var duplicate = !await processedStore.TryInsertAsync(app, key, cancellationToken);
         var ended = DateTimeOffset.UtcNow;
         logger.LogInformation("Blob processing finished: duplicate={duplicate}, processingEnd={processingEnd}, latencyMs={latencyMs}",
             duplicate, ended, (ended - properties.CreatedOn).TotalMilliseconds);
+    }
+
+    public static void VerifyEventETag(string? eventETag, ETag currentETag)
+    {
+        if (eventETag is not null &&
+            !string.Equals(eventETag.Trim('"'), currentETag.ToString().Trim('"'), StringComparison.Ordinal))
+            throw new InvalidOperationException("The event refers to a different blob version.");
     }
 }

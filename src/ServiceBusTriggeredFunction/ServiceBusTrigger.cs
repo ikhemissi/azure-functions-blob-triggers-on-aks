@@ -28,7 +28,7 @@ public sealed class ServiceBusTrigger(BlobProcessor processor, DefaultAzureCrede
         }
 
         await processor.ProcessAsync(FunctionServices.BlobFor(blobEvent, credential), "servicebus-triggered",
-            "service-bus", context.InvocationId, blobEvent.EventTime, cancellationToken);
+            "service-bus", context.InvocationId, blobEvent.EventTime, cancellationToken, blobEvent.ETag);
         await actions.CompleteMessageAsync(message, cancellationToken);
     }
 }

@@ -8,6 +8,8 @@ using Microsoft.Azure.Functions.Worker.OpenTelemetry;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Resources;
 
 namespace BlobProcessing;
 
@@ -29,7 +31,12 @@ public static class FunctionServices
         builder.Services.AddSingleton<BlobProcessor>();
         builder.Logging.ClearProviders();
         builder.Logging.AddJsonConsole(options => options.IncludeScopes = true);
+        builder.Services.Configure<OpenTelemetryLoggerOptions>(options => options.IncludeScopes = true);
         builder.Services.AddOpenTelemetry()
+            .ConfigureResource(resource => resource.AddAttributes(new Dictionary<string, object>
+            {
+                ["podName"] = Environment.GetEnvironmentVariable("POD_NAME") ?? "local"
+            }))
             .UseFunctionsWorkerDefaults()
             .UseAzureMonitorExporter(options => options.Credential = credential);
     }
