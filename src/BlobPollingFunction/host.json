@@ -1,0 +1,9 @@
+{
+  "version": "2.0",
+  "extensions": {
+    "blobs": {
+      // Bound concurrent blob processing per host for the fixed-replica experiment.
+      "maxDegreeOfParallelism": 8
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "version": "2.0",
+  "extensions": {
+    "queues": {
+      // Event Grid queue encoding remains to be verified in Q5. "none" expects plain JSON.
+      // https://learn.microsoft.com/azure/azure-functions/functions-bindings-storage-queue#hostjson-settings
+      "messageEncoding": "none",
+      "maxDequeueCount": 5
+    }
+  }
+}
