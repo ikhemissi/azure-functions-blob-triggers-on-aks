@@ -37,10 +37,8 @@ module "network" {
 
 locals {
   network = {
-    subnet_ids = {
-      aks_nodes      = module.network.subnet_ids["aks-nodes"]
-      aks_api_server = module.network.subnet_ids["aks-api-server"]
-    }
+    subnet_ids              = module.network.subnet_ids
+    subnet_address_prefixes = module.network.subnet_address_prefixes
   }
   private_endpoint = var.private_networking ? {
     subnet_id            = module.network.subnet_ids["private-endpoints"]

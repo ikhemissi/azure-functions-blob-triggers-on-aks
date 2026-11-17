@@ -8,6 +8,13 @@ resource "azurerm_user_assigned_identity" "control_plane" {
   tags                = local.tags
 }
 
+resource "azurerm_user_assigned_identity" "kubelet" {
+  name                = "id-aks-kubelet-${var.environment_name}"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = var.location
+  tags                = local.tags
+}
+
 resource "azurerm_role_assignment" "control_plane_network" {
   scope                = module.network.virtual_network_id
   role_definition_name = "Network Contributor"
@@ -15,8 +22,15 @@ resource "azurerm_role_assignment" "control_plane_network" {
   principal_type       = "ServicePrincipal"
 }
 
+resource "azurerm_role_assignment" "kubelet_acr_pull" {
+  scope                = module.container_registry.id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_user_assigned_identity.kubelet.principal_id
+  principal_type       = "ServicePrincipal"
+}
+
 resource "azurerm_role_assignment" "control_plane_kubelet_operator" {
-  scope                = module.container_registry.pull_identity_id
+  scope                = azurerm_user_assigned_identity.kubelet.id
   role_definition_name = "Managed Identity Operator"
   principal_id         = azurerm_user_assigned_identity.control_plane.principal_id
   principal_type       = "ServicePrincipal"
@@ -39,7 +53,7 @@ resource "azurerm_kubernetes_cluster" "main" {
     vm_size                     = var.aks_node_size
     node_count                  = 2
     type                        = "VirtualMachineScaleSets"
-    vnet_subnet_id              = local.network.subnet_ids.aks_nodes
+    vnet_subnet_id              = local.network.subnet_ids["aks-nodes"]
     temporary_name_for_rotation = "nodeswap"
 
     upgrade_settings {
@@ -53,9 +67,9 @@ resource "azurerm_kubernetes_cluster" "main" {
   }
 
   kubelet_identity {
-    client_id                 = data.azurerm_user_assigned_identity.registry_pull.client_id
-    object_id                 = data.azurerm_user_assigned_identity.registry_pull.principal_id
-    user_assigned_identity_id = module.container_registry.pull_identity_id
+    client_id                 = azurerm_user_assigned_identity.kubelet.client_id
+    object_id                 = azurerm_user_assigned_identity.kubelet.principal_id
+    user_assigned_identity_id = azurerm_user_assigned_identity.kubelet.id
   }
 
   azure_active_directory_role_based_access_control {
@@ -65,7 +79,7 @@ resource "azurerm_kubernetes_cluster" "main" {
 
   api_server_access_profile {
     virtual_network_integration_enabled = true
-    subnet_id                           = local.network.subnet_ids.aks_api_server
+    subnet_id                           = local.network.subnet_ids["aks-api-server"]
     authorized_ip_ranges                = var.private_networking ? null : var.aks_authorized_ip_ranges
   }
 
