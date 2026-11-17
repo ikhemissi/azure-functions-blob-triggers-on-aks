@@ -1,5 +1,7 @@
-# A project's network and a module with a private endpoint in the same plan, as infra/network.tf wires them once a
-# project uses a virtual network: the subnet's id is not known yet, and the plan must still succeed.
+# A project's network and a private endpoint in the same plan, as infra/network.tf wires them once a project uses a
+# virtual network: the subnet's id is not known yet, and the plan must still succeed. The endpoint stands in for the
+# catalog modules' own (count on whether private_endpoint is null), so that this test needs no other module: projects
+# copy only the modules they use.
 
 terraform {
   required_version = ">= 1.9"
@@ -24,14 +26,29 @@ module "network" {
   private_dns_zones = ["privatelink.vaultcore.azure.net"]
 }
 
-module "key_vault" {
-  source              = "../../../key-vault"
-  name                = "kv-test"
-  resource_group_name = "rg-test"
-  location            = "francecentral"
+locals {
   private_endpoint = {
     subnet_id            = module.network.subnet_ids["private-endpoints"]
     private_dns_zone_ids = module.network.private_dns_zone_ids
   }
 }
 
+resource "azurerm_private_endpoint" "vault" {
+  count               = local.private_endpoint == null ? 0 : 1
+  name                = "pe-kv-test"
+  resource_group_name = "rg-test"
+  location            = "francecentral"
+  subnet_id           = local.private_endpoint.subnet_id
+
+  private_service_connection {
+    name                           = "vault"
+    private_connection_resource_id = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-test/providers/Microsoft.KeyVault/vaults/kv-test"
+    subresource_names              = ["vault"]
+    is_manual_connection           = false
+  }
+
+  private_dns_zone_group {
+    name                 = "default"
+    private_dns_zone_ids = [local.private_endpoint.private_dns_zone_ids["privatelink.vaultcore.azure.net"]]
+  }
+}
