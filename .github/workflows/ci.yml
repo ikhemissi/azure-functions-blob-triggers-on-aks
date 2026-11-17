@@ -1,0 +1,94 @@
+# Offline checks of the spike: apps, images, Terraform, Kubernetes manifests and scripts. No Azure access and no
+# secrets: nothing is pushed or deployed. Each job runs locally, from the repository root, with:
+#   apps:       dotnet build BlobTriggers.slnx -warnaserror && dotnet test BlobTriggers.slnx
+#   images:     docker build -f src/<App>/Dockerfile .   (BlobPollingFunction, QueueTriggeredFunction,
+#                                                         ServiceBusTriggeredFunction)
+#   infra:      terraform -chdir=infra fmt -check -recursive
+#               terraform -chdir=infra init -backend=false && terraform -chdir=infra validate
+#               in each infra/modules/<module>/ (and infra/ if infra/tests/ exists):
+#                 terraform init -backend=false && terraform test
+#   kubernetes: make validate-k8s   (needs kubeconform v0.8.0 and envsubst)
+#   scripts:    make lint           (needs shellcheck)
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  apps:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build
+        run: dotnet build BlobTriggers.slnx -warnaserror
+      - name: Test
+        run: dotnet test BlobTriggers.slnx
+
+  images:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [BlobPollingFunction, QueueTriggeredFunction, ServiceBusTriggeredFunction]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build image (no push)
+        run: docker build -f "src/${{ matrix.app }}/Dockerfile" .
+
+  infra:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_version: "1.15.8"
+          terraform_wrapper: false
+      - name: Format
+        run: terraform -chdir=infra fmt -check -recursive
+      - name: Validate the root
+        run: |
+          terraform -chdir=infra init -backend=false -input=false
+          terraform -chdir=infra validate
+      - name: Test the modules
+        run: |
+          for module in infra/modules/*/; do
+            echo "::group::$module"
+            terraform -chdir="$module" init -backend=false -input=false
+            terraform -chdir="$module" test
+            echo "::endgroup::"
+          done
+      - name: Test the root
+        if: hashFiles('infra/tests/**') != ''
+        run: terraform -chdir=infra test
+
+  kubernetes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install kubeconform
+        run: |
+          curl -fsSL https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz \
+            | sudo tar -xz -C /usr/local/bin kubeconform
+          kubeconform -v
+      - name: Validate the manifests
+        run: make validate-k8s
+
+  scripts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Lint the scripts
+        run: make lint
