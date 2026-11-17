@@ -37,7 +37,8 @@ resource "azurerm_role_assignment" "eventgrid_storage_queue_sender" {
 }
 
 resource "azurerm_role_assignment" "eventgrid_storage_deadletter_writer" {
-  scope                = azurerm_storage_container.eventgrid_deadletter["upload2"].resource_manager_id
+  # Event Grid's check of its dead-letter identity refused this role on the container (Q8); on the account it passes.
+  scope                = module.storage_accounts["upload2"].id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azurerm_eventgrid_system_topic.storage_queue.identity[0].principal_id
   principal_type       = "ServicePrincipal"
@@ -51,7 +52,8 @@ resource "azurerm_role_assignment" "eventgrid_service_bus_sender" {
 }
 
 resource "azurerm_role_assignment" "eventgrid_service_bus_deadletter_writer" {
-  scope                = azurerm_storage_container.eventgrid_deadletter["upload3"].resource_manager_id
+  # Event Grid's check of its dead-letter identity refused this role on the container (Q8); on the account it passes.
+  scope                = module.storage_accounts["upload3"].id
   role_definition_name = "Storage Blob Data Contributor"
   principal_id         = azurerm_eventgrid_system_topic.service_bus.identity[0].principal_id
   principal_type       = "ServicePrincipal"
