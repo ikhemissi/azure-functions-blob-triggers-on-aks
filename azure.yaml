@@ -48,6 +48,8 @@ services:
     docker:
       path: ./Dockerfile
       context: ../..
+      # Built in the registry (ACR Tasks): no local Docker, and the same path once the registry is private.
+      remoteBuild: true
     k8s:
       deploymentPath: ../../k8s/blob-polling
       namespace: functions
@@ -60,6 +62,8 @@ services:
     docker:
       path: ./Dockerfile
       context: ../..
+      # Built in the registry (ACR Tasks): no local Docker, and the same path once the registry is private.
+      remoteBuild: true
     k8s:
       deploymentPath: ../../k8s/queue-triggered
       namespace: functions
@@ -72,6 +76,8 @@ services:
     docker:
       path: ./Dockerfile
       context: ../..
+      # Built in the registry (ACR Tasks): no local Docker, and the same path once the registry is private.
+      remoteBuild: true
     k8s:
       deploymentPath: ../../k8s/servicebus-triggered
       namespace: functions
