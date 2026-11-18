@@ -18,7 +18,7 @@ Yes in phase 1: the host's own storage and the three triggers connect with `__cr
 
 ### Q3 — Host IDs
 
-Partly: replicas share their explicit host ID; restarts and a rolling update processed no blob twice ([02](experiments/02-phase-1-scenarios.md), scenarios 6 and 10). The host warns that an explicit host ID "is not a recommended configuration". Setting `POD_NAMESPACE` makes the host behave as on App Service on Kubernetes and broke the blob trigger's listener ([01](experiments/01-making-phase-1-run.md)). Behaviour without an explicit host ID: still to test.
+Partly: replicas share their explicit host ID; restarts and a rolling update processed no blob twice ([02](experiments/02-phase-1-scenarios.md), scenarios 6 and 10). The host warns that an explicit host ID "is not a recommended configuration". Setting `POD_NAMESPACE` makes the host behave as on App Service on Kubernetes and broke the blob trigger's listener ([01](experiments/01-making-phase-1-run.md)). Without an explicit host ID, each pod takes one made of its pod name, so every new pod found no receipts and processed the whole container again (3,236 blobs × 2 pods, all caught by the processing record) ([04](experiments/04-scale-to-zero-host-id-probes.md)): keep an explicit host ID shared by the replicas.
 
 ### Q4 — The polling Blob trigger
 
@@ -34,7 +34,7 @@ Phase 1 used Standard (public access on): delivery works. Premium with restricte
 
 ### Q7 — KEDA
 
-Both scalers work with Workload Identity; the queue app's scale-out was bounded by the two nodes' capacity (4 of 10 replicas), and the Service Bus app needed none for 500 messages ([02](experiments/02-phase-1-scenarios.md)). Scale to zero: still to test.
+Both scalers work with Workload Identity; the queue app's scale-out was bounded by the two nodes' capacity (4 of 10 replicas), and the Service Bus app needed none for 500 messages ([02](experiments/02-phase-1-scenarios.md)). From zero, a blob was processed 23 s after its upload (KEDA's 30 s polling, then 10 s to start a pod with a cached image), and the apps returned to zero 5 minutes after the work ([04](experiments/04-scale-to-zero-host-id-probes.md)). Private endpoints: phase 2.
 
 ### Q8 — Least roles
 
@@ -46,7 +46,7 @@ Phase 1, 20 concurrent blobs, median (p95): Service Bus 1.6 s (1.7), polling 5.4
 
 ### Q10 — Probes
 
-The anonymous `/admin/host/ping` keeps the pods ready; a pod scaled from zero was ready after 130 s. Behaviour while the host starts: still to measure.
+The anonymous `/admin/host/ping` keeps the pods ready; a pod scaled from zero was ready after 130 s on a busy cluster ([02](experiments/02-phase-1-scenarios.md)). While the host starts, its port refuses connections; the first successful ping came within about a second of "Host started", so Ready means the listeners run ([04](experiments/04-scale-to-zero-host-id-probes.md)).
 
 ### Q11 — Phase 2 operations
 
