@@ -55,14 +55,12 @@ spec:
               value: workloadidentity
             - name: UploadsStorage__clientId
               value: "{{ .Env.BLOB_POLLING_CLIENT_ID }}"
+            # No POD_NAMESPACE: with it, the Functions host takes the pod for App Service on Kubernetes and its locks
+            # (the blob trigger's singleton scan) wait for a leader endpoint that doesn't exist here.
             - name: POD_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
           resources:
             requests:
               cpu: 100m

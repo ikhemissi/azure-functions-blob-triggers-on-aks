@@ -15,6 +15,7 @@
     <AzureFunctionsVersion>v4</AzureFunctionsVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <UserSecretsId>d48d92b5-3fba-4332-a076-30f4f630756a</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <None Update="host.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
