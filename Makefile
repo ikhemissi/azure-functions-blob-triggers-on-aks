@@ -61,6 +61,8 @@ scenario-10:
 lint:
 	shellcheck -x scripts/*.sh scripts/scenarios/*.sh infra/hooks/*/*.sh
 
+# azd renders *.tmpl.yaml manifests as Go templates ({{ .Env.NAME }}) and applies other manifests as they are; this
+# renders them with dummy values (sed turns the template syntax into ${NAME} for envsubst) and validates the result.
 validate-k8s:
 	export BLOB_POLLING_CLIENT_ID=00000000-0000-0000-0000-000000000001; \
 	export QUEUE_TRIGGERED_CLIENT_ID=00000000-0000-0000-0000-000000000002; \
@@ -82,6 +84,6 @@ validate-k8s:
 	export SERVICE_SERVICEBUS_TRIGGERED_IMAGE_NAME=example.azurecr.io/servicebus-triggered:latest; \
 	for manifest in k8s/*.yaml k8s/*/*.yaml; do \
 	  printf '%s\n' '---'; \
-	  envsubst < "$$manifest"; \
+	  sed -E 's/\{\{ *\.Env\.([A-Z0-9_]+) *\}\}/$${\1}/g' "$$manifest" | envsubst; \
 	done | \
 	  kubeconform -ignore-missing-schemas -

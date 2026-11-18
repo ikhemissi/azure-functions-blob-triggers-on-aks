@@ -7,7 +7,7 @@ metadata:
     app: blob-polling
     trigger: blob-polling
 spec:
-  replicas: ${BLOB_POLLING_REPLICAS}
+  replicas: {{ .Env.BLOB_POLLING_REPLICAS }}
   selector:
     matchLabels:
       app: blob-polling
@@ -27,7 +27,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: blob-polling
-          image: ${SERVICE_BLOB_POLLING_IMAGE_NAME}
+          image: "{{ .Env.SERVICE_BLOB_POLLING_IMAGE_NAME }}"
           ports:
             - name: http
               containerPort: 80
@@ -36,33 +36,31 @@ spec:
             - name: AzureFunctionsWebHost__hostid
               value: blob-polling
             - name: AzureWebJobsStorage__accountName
-              value: ${HOST_ACCOUNT_1}
+              value: "{{ .Env.HOST_ACCOUNT_1 }}"
             - name: AzureWebJobsStorage__credential
               value: workloadidentity
             - name: AzureWebJobsStorage__clientId
-              value: ${BLOB_POLLING_CLIENT_ID}
+              value: "{{ .Env.BLOB_POLLING_CLIENT_ID }}"
             - name: FUNCTIONS_WORKER_RUNTIME
               value: dotnet-isolated
             - name: APPLICATIONINSIGHTS_CONNECTION_STRING
-              value: ${APPLICATIONINSIGHTS_CONNECTION_STRING}
+              value: "{{ .Env.APPLICATIONINSIGHTS_CONNECTION_STRING }}"
             - name: PROCESSED_TABLE_URI
-              value: https://${HOST_ACCOUNT_1}.table.core.windows.net/processed
+              value: "https://{{ .Env.HOST_ACCOUNT_1 }}.table.core.windows.net/processed"
             - name: UploadsStorage__blobServiceUri
-              value: https://${UPLOADS_ACCOUNT_1}.blob.core.windows.net
+              value: "https://{{ .Env.UPLOADS_ACCOUNT_1 }}.blob.core.windows.net"
             - name: UploadsStorage__queueServiceUri
-              value: https://${UPLOADS_ACCOUNT_1}.queue.core.windows.net
+              value: "https://{{ .Env.UPLOADS_ACCOUNT_1 }}.queue.core.windows.net"
             - name: UploadsStorage__credential
               value: workloadidentity
             - name: UploadsStorage__clientId
-              value: ${BLOB_POLLING_CLIENT_ID}
+              value: "{{ .Env.BLOB_POLLING_CLIENT_ID }}"
+            # No POD_NAMESPACE: with it, the Functions host takes the pod for App Service on Kubernetes and its locks
+            # (the blob trigger's singleton scan) wait for a leader endpoint that doesn't exist here.
             - name: POD_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
           resources:
             requests:
               cpu: 100m

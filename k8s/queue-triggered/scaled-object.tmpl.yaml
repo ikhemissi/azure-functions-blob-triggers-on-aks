@@ -6,13 +6,13 @@ metadata:
 spec:
   scaleTargetRef:
     name: queue-triggered
-  minReplicaCount: ${KEDA_MIN_REPLICAS}
-  maxReplicaCount: ${KEDA_MAX_REPLICAS}
+  minReplicaCount: {{ .Env.KEDA_MIN_REPLICAS }}
+  maxReplicaCount: {{ .Env.KEDA_MAX_REPLICAS }}
   triggers:
     - type: azure-queue
       metadata:
-        accountName: ${UPLOADS_ACCOUNT_2}
+        accountName: "{{ .Env.UPLOADS_ACCOUNT_2 }}"
         queueName: blob-events
-        queueLength: "${KEDA_MESSAGES_PER_REPLICA}"
+        queueLength: "{{ .Env.KEDA_MESSAGES_PER_REPLICA }}"
       authenticationRef:
         name: queue-triggered

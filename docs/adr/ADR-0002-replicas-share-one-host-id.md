@@ -8,7 +8,7 @@ On AKS one app runs as several pods (replicas) of one Deployment. The Functions 
 
 Outside App Service the host has no site name to derive the ID from. In the host's source (commit [`2e401ef`](https://github.com/Azure/azure-functions-host/blob/2e401ef5816d52eec09d574839787bb2d043a012/src/WebJobs.Script/Host/ScriptHostIdProvider.cs#L74-L103)), when no ID is configured:
 
-- if `KUBERNETES_SERVICE_HOST` and `POD_NAMESPACE` are set (our Deployments set `POD_NAMESPACE`), the host derives the ID from `WEBSITE_SITE_NAME`, which our pods don't set;
+- if `KUBERNETES_SERVICE_HOST` and `POD_NAMESPACE` are set, the host takes the pod for App Service on Kubernetes: it derives the ID from `WEBSITE_SITE_NAME`, which our pods don't set, and uses a lock manager that needs that platform's leader endpoint (with `POD_NAMESPACE` set, the blob trigger's listener failed to start on 2026-11-18, so our Deployments no longer set it);
 - otherwise it derives the ID from the machine name (the pod name) and a hash of the script path, a path the source comment marks as for local use only, not distributed scenarios.
 
 ## Decision

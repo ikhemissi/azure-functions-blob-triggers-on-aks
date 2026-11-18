@@ -115,7 +115,7 @@ Common to the three apps:
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | from Terraform (not a secret; the exporter authenticates with the identity) |
 | `PROCESSED_TABLE_URI` | `https://<host account>.table.core.windows.net/processed` |
 | `UPLOADS_BLOB_SERVICE_URI` | apps 2 and 3: `https://<their upload account>.blob.core.windows.net/`; an event whose blob URL is elsewhere is rejected as malformed |
-| `POD_NAME`, `POD_NAMESPACE` | from the downward API |
+| `POD_NAME` | from the downward API. Not `POD_NAMESPACE`: with it and `KUBERNETES_SERVICE_HOST`, the Functions host takes the pod for App Service on Kubernetes and uses a lock manager that needs that platform's leader endpoint; the blob trigger's listener then fails to start (seen 2026-11-18) |
 
 Trigger connections (the binding's `Connection` property is the prefix):
 

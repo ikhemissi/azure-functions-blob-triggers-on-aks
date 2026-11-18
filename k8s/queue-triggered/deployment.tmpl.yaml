@@ -1,15 +1,15 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: servicebus-triggered
+  name: queue-triggered
   namespace: functions
   labels:
-    app: servicebus-triggered
-    trigger: service-bus
+    app: queue-triggered
+    trigger: storage-queue
 spec:
   selector:
     matchLabels:
-      app: servicebus-triggered
+      app: queue-triggered
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -18,50 +18,48 @@ spec:
   template:
     metadata:
       labels:
-        app: servicebus-triggered
-        trigger: service-bus
+        app: queue-triggered
+        trigger: storage-queue
         azure.workload.identity/use: "true"
     spec:
-      serviceAccountName: servicebus-triggered
+      serviceAccountName: queue-triggered
       terminationGracePeriodSeconds: 30
       containers:
-        - name: servicebus-triggered
-          image: ${SERVICE_SERVICEBUS_TRIGGERED_IMAGE_NAME}
+        - name: queue-triggered
+          image: "{{ .Env.SERVICE_QUEUE_TRIGGERED_IMAGE_NAME }}"
           ports:
             - name: http
               containerPort: 80
               protocol: TCP
           env:
             - name: AzureFunctionsWebHost__hostid
-              value: servicebus-triggered
+              value: queue-triggered
             - name: AzureWebJobsStorage__accountName
-              value: ${HOST_ACCOUNT_3}
+              value: "{{ .Env.HOST_ACCOUNT_2 }}"
             - name: AzureWebJobsStorage__credential
               value: workloadidentity
             - name: AzureWebJobsStorage__clientId
-              value: ${SERVICEBUS_TRIGGERED_CLIENT_ID}
+              value: "{{ .Env.QUEUE_TRIGGERED_CLIENT_ID }}"
             - name: FUNCTIONS_WORKER_RUNTIME
               value: dotnet-isolated
             - name: APPLICATIONINSIGHTS_CONNECTION_STRING
-              value: ${APPLICATIONINSIGHTS_CONNECTION_STRING}
+              value: "{{ .Env.APPLICATIONINSIGHTS_CONNECTION_STRING }}"
             - name: PROCESSED_TABLE_URI
-              value: https://${HOST_ACCOUNT_3}.table.core.windows.net/processed
+              value: "https://{{ .Env.HOST_ACCOUNT_2 }}.table.core.windows.net/processed"
             - name: UPLOADS_BLOB_SERVICE_URI
-              value: https://${UPLOADS_ACCOUNT_3}.blob.core.windows.net/
-            - name: BlobEventsServiceBus__fullyQualifiedNamespace
-              value: ${SERVICE_BUS_NAMESPACE}.servicebus.windows.net
-            - name: BlobEventsServiceBus__credential
+              value: "https://{{ .Env.UPLOADS_ACCOUNT_2 }}.blob.core.windows.net/"
+            - name: BlobEventsQueue__queueServiceUri
+              value: "https://{{ .Env.UPLOADS_ACCOUNT_2 }}.queue.core.windows.net"
+            - name: BlobEventsQueue__credential
               value: workloadidentity
-            - name: BlobEventsServiceBus__clientId
-              value: ${SERVICEBUS_TRIGGERED_CLIENT_ID}
+            - name: BlobEventsQueue__clientId
+              value: "{{ .Env.QUEUE_TRIGGERED_CLIENT_ID }}"
+            # No POD_NAMESPACE: with it, the Functions host takes the pod for App Service on Kubernetes and its locks
+            # (the blob trigger's singleton scan) wait for a leader endpoint that doesn't exist here.
             - name: POD_NAME
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
           resources:
             requests:
               cpu: 100m
