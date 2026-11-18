@@ -8,13 +8,16 @@
   "generated_at": "2026-11-17T17:33:57+00:00",
   "blocks": [
     "azure-root",
-    "monitoring"
+    "monitoring",
+    "bastion-on-demand"
   ],
   "modules": [
     "monitoring",
     "network",
     "container-registry",
-    "storage-account"
+    "storage-account",
+    "jumpbox",
+    "function-app-flex"
   ],
   "answers": {
     "project_name": "azure-functions-blob-triggers-on-aks",

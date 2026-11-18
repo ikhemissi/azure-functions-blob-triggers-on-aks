@@ -83,3 +83,10 @@ services:
       namespace: functions
       deployment:
         name: servicebus-triggered
+
+  # The reaper of the Bastion sessions (infra/bastion-on-demand.tf): a Flex Consumption function app that deletes the
+  # Bastion host and NAT Gateway of a session past its time and deallocates the jumpbox.
+  bastion-reaper:
+    project: ./functions/bastion-reaper/src/BastionReaper
+    language: dotnet
+    host: function

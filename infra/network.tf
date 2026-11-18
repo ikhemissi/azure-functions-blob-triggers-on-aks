@@ -23,7 +23,8 @@ module "network" {
       address_prefix = "10.60.6.0/26"
     }
     jumpbox = {
-      address_prefix = "10.60.6.64/27"
+      address_prefix          = "10.60.6.64/27"
+      default_outbound_access = false
     }
   }
   private_dns_zones = var.private_networking ? [
