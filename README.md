@@ -54,6 +54,8 @@ azd provision --preview                           # read the plan
 azd up                                            # provision, then deploy the services
 ```
 
+Phase 2 (`azd env set PRIVATE_NETWORKING true`) makes the API server and the registry private: open a working session with `infra/scripts/bastion-up.sh 4`, then run `kubectl` and `azd deploy` on the jumpbox (`infra/scripts/bastion-ssh.sh`). The reaper ends the session when its time is up ([docs/DESIGN.md](docs/DESIGN.md#private-access)).
+
 Later changes: `azd provision --preview`, read the plan, then `azd provision`.
 
 Tear it down when the spike ends: `azd down --purge`.

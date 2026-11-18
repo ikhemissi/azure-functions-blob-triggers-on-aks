@@ -49,8 +49,8 @@ Virtual network `10.60.0.0/16`:
 | `aks-nodes` | `10.60.0.0/22` | node pool (Azure CNI Overlay, pods in `192.168.0.0/16`) |
 | `aks-api-server` | `10.60.4.0/28` | API Server VNet Integration (delegated to `Microsoft.ContainerService/managedClusters`) |
 | `private-endpoints` | `10.60.5.0/24` | phase 2 |
-| `AzureBastionSubnet` | `10.60.6.0/26` | phase 2 |
-| `jumpbox` | `10.60.6.64/27` | phase 2 |
+| `AzureBastionSubnet` | `10.60.6.0/26` | the Bastion host of a working session ([Private access](#private-access)) |
+| `jumpbox` | `10.60.6.64/27` | the jumpbox; no default outbound access |
 
 ## Phase 2 network
 
@@ -75,6 +75,12 @@ What `PRIVATE_NETWORKING=true` changes; with `false`, none of it exists and ever
 | `disabled` | disabled | Deny | the same (not claimed to work until an experiment shows it) |
 
 Network security groups (`nsg-aks-nodes-<env>`, `nsg-private-endpoints-<env>`) on `aks-nodes` and `private-endpoints`: allow what the cluster (nodes, pods, the API server subnet, Azure Load Balancer) and the private endpoints (HTTPS, AMQP from the virtual network) need, deny the rest inbound from the internet. `AzureBastionSubnet` and `jumpbox` get theirs with the Bastion block.
+
+## Private access
+
+`infra/bastion-on-demand.tf` (in both phases): a jumpbox without a public IP (`jumpbox-<env>`, Entra ID sign-in, size `JUMPBOX_SIZE`), the public IPs of a Bastion host and of a NAT Gateway, and a reaper function (azd service `bastion-reaper`, Flex Consumption). `infra/scripts/bastion-up.sh <hours>` creates an Azure Bastion Standard and a NAT Gateway for a working session; the reaper deletes both once the session's time has passed and deallocates the jumpbox. Between sessions, only the jumpbox's disk, the two addresses and the reaper's storage cost anything.
+
+In phase 2, the API server and the registry are private: `kubectl` and `azd deploy` run on the jumpbox (`infra/scripts/bastion-ssh.sh`), whose tools `infra/scripts/jumpbox-install-tools.sh` installs once. Settings: `JUMPBOX_SIZE` (default `Standard_D2als_v7`), `JUMPBOX_LOGIN_OBJECT_IDS` (others who may sign in, comma-separated), `REAPER_DEALLOCATES_JUMPBOX` (default `true`).
 
 ## AKS
 

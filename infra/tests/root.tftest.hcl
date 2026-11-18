@@ -22,11 +22,14 @@ mock_provider "time" {}
 mock_provider "http" {}
 
 variables {
-  environment_name         = "spike-test"
-  subscription_id          = "00000000-0000-0000-0000-000000000000"
-  location                 = "francecentral"
-  tags                     = ""
-  aks_authorized_ip_ranges = ["203.0.113.10/32"]
+  environment_name           = "spike-test"
+  subscription_id            = "00000000-0000-0000-0000-000000000000"
+  location                   = "francecentral"
+  tags                       = ""
+  aks_authorized_ip_ranges   = ["203.0.113.10/32"]
+  jumpbox_size               = "Standard_D2als_v7"
+  jumpbox_login_object_ids   = ""
+  reaper_deallocates_jumpbox = true
 }
 
 run "public" {

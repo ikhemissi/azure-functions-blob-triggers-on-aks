@@ -1,20 +1,23 @@
 {
   "composition": "spike",
   "source": {
-    "commit": "1b081f09555f6fd8a98c344d9c8bf9b4eb9bfa11",
-    "describe": "v0.3.0-53-g1b081f0",
+    "commit": "b23cdbf15f043f6a1768c5cde92fab47dd8173d1",
+    "describe": "v0.3.0-58-gb23cdbf",
     "dirty": false
   },
   "generated_at": "2026-11-17T17:33:57+00:00",
   "blocks": [
     "azure-root",
-    "monitoring"
+    "monitoring",
+    "bastion-on-demand"
   ],
   "modules": [
     "monitoring",
     "network",
     "container-registry",
-    "storage-account"
+    "storage-account",
+    "jumpbox",
+    "function-app-flex"
   ],
   "answers": {
     "project_name": "azure-functions-blob-triggers-on-aks",
