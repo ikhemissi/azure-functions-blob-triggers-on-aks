@@ -2,26 +2,58 @@
 # The host-name prefix is shortened to keep its complete token within Azure's 24-character account limit.
 
 locals {
-  storage_account_names = {
-    upload1 = "st${local.compact_name}up1${local.token}"
-    upload2 = "st${local.compact_name}up2${local.token}"
-    upload3 = "st${local.compact_name}up3${local.token}"
-    host1   = "st${substr(local.compact_name, 0, 9)}host1${local.token}"
-    host2   = "st${substr(local.compact_name, 0, 9)}host2${local.token}"
-    host3   = "st${substr(local.compact_name, 0, 9)}host3${local.token}"
+  # In phase 2, each account gets a private endpoint for the services its clients use (docs/DESIGN.md, "Phase 2
+  # network"); the accounts Event Grid delivers into follow EVENT_GRID_DESTINATION_ACCESS (network rules: event-grid.tf).
+  storage_accounts = {
+    upload1 = {
+      name                      = "st${local.compact_name}up1${local.token}"
+      private_endpoint_services = ["blob", "queue"]
+      is_event_grid_destination = false
+    }
+    upload2 = {
+      name                      = "st${local.compact_name}up2${local.token}"
+      private_endpoint_services = ["blob", "queue"]
+      is_event_grid_destination = true
+    }
+    upload3 = {
+      name                      = "st${local.compact_name}up3${local.token}"
+      private_endpoint_services = ["blob"]
+      is_event_grid_destination = true
+    }
+    host1 = {
+      name                      = "st${substr(local.compact_name, 0, 9)}host1${local.token}"
+      private_endpoint_services = ["blob", "queue", "table"]
+      is_event_grid_destination = false
+    }
+    host2 = {
+      name                      = "st${substr(local.compact_name, 0, 9)}host2${local.token}"
+      private_endpoint_services = ["blob", "queue", "table"]
+      is_event_grid_destination = false
+    }
+    host3 = {
+      name                      = "st${substr(local.compact_name, 0, 9)}host3${local.token}"
+      private_endpoint_services = ["blob", "queue", "table"]
+      is_event_grid_destination = false
+    }
+  }
+
+  # Phase 1: every account public. Phase 2: off, except where Event Grid delivers.
+  is_storage_public_access_enabled = {
+    for key, account in local.storage_accounts :
+    key => account.is_event_grid_destination ? local.is_event_grid_destination_public_access_enabled : !var.private_networking
   }
 }
 
 module "storage_accounts" {
-  for_each = local.storage_account_names
+  for_each = local.storage_accounts
   source   = "./modules/storage-account"
 
-  name                          = each.value
+  name                          = each.value.name
   resource_group_name           = azurerm_resource_group.main.name
   location                      = var.location
   tags                          = local.tags
-  public_network_access_enabled = !var.private_networking
-  private_endpoint_services     = ["blob", "queue", "table"]
+  public_network_access_enabled = local.is_storage_public_access_enabled[each.key]
+  private_endpoint_services     = each.value.private_endpoint_services
   private_endpoint              = local.private_endpoint
 }
 

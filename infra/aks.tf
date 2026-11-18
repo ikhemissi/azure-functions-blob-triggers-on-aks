@@ -1,5 +1,11 @@
 # The cluster runs the three Function apps with Entra RBAC and Workload Identity.
-# AzureRM 4.81 marks private_cluster_enabled ForceNew, though AKS supports toggling it in place with VNet Integration.
+# AzureRM 4.81 marks private_cluster_enabled ForceNew, though AKS supports toggling it in place with VNet Integration:
+# the cluster resource ignores it after creation, and azapi_update_resource.aks_api_server_access switches it.
+
+locals {
+  # Pods get addresses from this range (Azure CNI Overlay); the nodes' network security group lets it in.
+  aks_pod_cidr = "192.168.0.0/16"
+}
 
 resource "azurerm_user_assigned_identity" "control_plane" {
   name                = "id-aks-control-plane-${var.environment_name}"
@@ -88,7 +94,7 @@ resource "azurerm_kubernetes_cluster" "main" {
     network_plugin_mode = "overlay"
     network_data_plane  = "cilium"
     network_policy      = "cilium"
-    pod_cidr            = "192.168.0.0/16"
+    pod_cidr            = local.aks_pod_cidr
     service_cidr        = "10.62.0.0/16"
     dns_service_ip      = "10.62.0.10"
     load_balancer_sku   = "standard"
@@ -101,6 +107,12 @@ resource "azurerm_kubernetes_cluster" "main" {
   tags = local.tags
 
   lifecycle {
+    # Both are set at creation only; afterwards azapi_update_resource.aks_api_server_access owns them.
+    ignore_changes = [
+      private_cluster_enabled,
+      api_server_access_profile[0].authorized_ip_ranges,
+    ]
+
     precondition {
       condition = var.private_networking || (
         length(var.aks_authorized_ip_ranges) > 0 &&
@@ -114,6 +126,24 @@ resource "azurerm_kubernetes_cluster" "main" {
     azurerm_role_assignment.control_plane_network,
     azurerm_role_assignment.control_plane_kubelet_operator,
   ]
+}
+
+# Switches the API server between public (limited to AKS_AUTHORIZED_IP_RANGES) and private without replacing the
+# cluster, which API Server VNet Integration supports after creation
+# (https://learn.microsoft.com/azure/aks/api-server-vnet-integration, "Enable or disable private cluster mode on an
+# existing cluster with API Server VNet Integration"). Both in one request: a private cluster takes no authorized IP
+# ranges. To verify (Q11): the switch in both directions, and the private DNS zone AKS creates for the API server.
+resource "azapi_update_resource" "aks_api_server_access" {
+  type        = "Microsoft.ContainerService/managedClusters@2025-10-01"
+  resource_id = azurerm_kubernetes_cluster.main.id
+  body = {
+    properties = {
+      apiServerAccessProfile = {
+        enablePrivateCluster = var.private_networking
+        authorizedIPRanges   = var.private_networking ? [] : var.aks_authorized_ip_ranges
+      }
+    }
+  }
 }
 
 resource "azurerm_role_assignment" "aks_deployer_cluster_admin" {
