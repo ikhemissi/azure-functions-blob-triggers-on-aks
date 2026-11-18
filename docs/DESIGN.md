@@ -96,8 +96,8 @@ One user-assigned identity per app, federated with its service account (`system:
 | `queue-triggered` | account 2 | Storage Queue Data Contributor (reads, deletes and writes poison messages; also KEDA's queue length), Storage Blob Data Reader |
 | `servicebus-triggered` | the Service Bus queue | Azure Service Bus Data Receiver (KEDA's message count: to verify, see Q8) |
 | `servicebus-triggered` | account 3 | Storage Blob Data Reader |
-| Event Grid system topic 2 (system-assigned) | the `blob-events` queue; account 2 | Storage Queue Data Message Sender; Storage Blob Data Contributor on `eventgrid-deadletter` |
-| Event Grid system topic 3 (system-assigned) | the Service Bus queue; account 3 | Azure Service Bus Data Sender; Storage Blob Data Contributor on `eventgrid-deadletter` |
+| Event Grid system topic 2 (system-assigned) | account 2 | Storage Queue Data Message Sender, Storage Blob Data Contributor (dead-letter). On the account: Event Grid's check at subscription creation refused them on the queue and on the container ([01](experiments/01-making-phase-1-run.md)) |
+| Event Grid system topic 3 (system-assigned) | the Service Bus queue; account 3 | Azure Service Bus Data Sender (on the queue); Storage Blob Data Contributor (dead-letter, on the account, as above) |
 
 Add a role only when Azure refuses (403) and record which call needed it. Storage accounts have shared keys off; Service Bus has local authentication off.
 

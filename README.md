@@ -18,8 +18,16 @@ flowchart LR
 
 ## Key findings
 
-TODO: once the first experiments are done, one line per question (a table), and a diagram of the most important
-behaviour when it helps (a `sequenceDiagram`).
+Phase 1 (public endpoints, Entra only), 2026-11-18. Private networking (phase 2) and cost (phase 3) are still to come.
+
+| | Polling Blob trigger | Event Grid → Storage queue | Event Grid → Service Bus |
+|---|---|---|---|
+| Latency, 20 concurrent blobs, median (p95) | 5.4 s (5.9) | 12.7 s (13.6), default polling backoff | 1.6 s (1.7) |
+| Identity only (Workload Identity, no keys) | yes | yes | yes |
+| Scaling | fixed replicas (no KEDA scaler for new blobs) | KEDA; bounded by node capacity in the test | KEDA; one replica kept up with 500 messages |
+| Exactly one processing per blob (duplicates, killed pod, rolling restart, outage) | yes | yes | yes |
+| Malformed events | — | completed and logged; undecodable ones poisoned | dead-lettered with a reason |
+| Watch out for | WebJobs blob extension 5.3.10 or later | lower `maxPollingInterval` for latency | AMQP egress (TCP 5671) |
 
 The answers to every question, with the evidence: **[docs/FINDINGS.md](docs/FINDINGS.md)**.
 
