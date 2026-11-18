@@ -111,6 +111,8 @@ resource "azurerm_kubernetes_cluster" "main" {
     ignore_changes = [
       private_cluster_enabled,
       api_server_access_profile[0].authorized_ip_ranges,
+      # Some tenants' policies turn on Microsoft Defender for the cluster; without this, every plan would turn it off.
+      microsoft_defender,
     ]
 
     precondition {
