@@ -7,10 +7,11 @@
 # Changes: uploads the batch (left in place) and restarts each Deployment (new pods, same spec, a
 # kubectl.kubernetes.io/restartedAt annotation added to the pod template). Waits for each rollout to complete.
 #
-# Usage: scripts/scenarios/06-rolling-deployment.sh [--count N] [--parallelism N] [--timeout SECONDS]
+# Usage: scripts/scenarios/06-rolling-deployment.sh [--count N] [--parallelism N] [--restart-after SECONDS] [--timeout SECONDS]
 #                                                   [--ingestion-timeout SECONDS]
-#   --count N                    blobs per app (default 100)
+#   --count N                    blobs per app (default 500)
 #   --parallelism N              uploads in flight at once (default 32)
+#   --restart-after SECONDS      restarts each Deployment this long after its upload starts (default 20)
 #   --timeout SECONDS            how long to wait for the records, per app (default 1200)
 #   --ingestion-timeout SECONDS  how long to wait for Application Insights, per app (default 600)
 #   --help                       prints this text
@@ -27,14 +28,16 @@ SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=scripts/scenarios/lib.sh
 source "$SCRIPT_DIR/lib.sh"
 
-count=100
+count=500
 parallelism=32
+restart_after_seconds=20
 timeout_seconds=1200
 ingestion_timeout_seconds=600
 while (($# > 0)); do
   case "$1" in
     --count) count="${2:?--count needs a value}"; shift 2 ;;
     --parallelism) parallelism="${2:?--parallelism needs a value}"; shift 2 ;;
+    --restart-after) restart_after_seconds="${2:?--restart-after needs a value}"; shift 2 ;;
     --timeout) timeout_seconds="${2:?--timeout needs a value}"; shift 2 ;;
     --ingestion-timeout) ingestion_timeout_seconds="${2:?--ingestion-timeout needs a value}"; shift 2 ;;
     --help | -h) print_help "$0"; exit 0 ;;
@@ -52,15 +55,16 @@ source "$SCRIPT_DIR/../kubeconfig.sh"
 apps=(blob-polling queue-triggered servicebus-triggered)
 start_scenario 06
 
-for app in "${apps[@]}"; do
-  upload_blobs "$app" "$count" "$parallelism"
-done
-
+# Each app's Deployment restarts while its own batch is still being uploaded and processed: restarting after all the
+# uploads let the apps finish first, so the restart overlapped no processing.
 declare -A records_at_restart
 for app in "${apps[@]}"; do
-  records_at_restart["$app"]="$(found_record_count "$app")/$count"
+  upload_blobs "$app" "$count" "$parallelism" &
+  sleep "$restart_after_seconds"
+  records_at_restart["$app"]="$(recent_record_count "$app")/$count"
   log_step "$app: restarting the Deployment at ${records_at_restart[$app]} records"
   kubectl rollout restart deployment "$app" --namespace functions >&2
+  wait
 done
 for app in "${apps[@]}"; do
   wait_for_rollout "$app"
