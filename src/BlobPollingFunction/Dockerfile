@@ -1,6 +1,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 COPY src/BlobProcessing/ src/BlobProcessing/
+COPY src/BlobExtensionVersion/ src/BlobExtensionVersion/
 COPY src/BlobPollingFunction/ src/BlobPollingFunction/
 RUN dotnet publish src/BlobPollingFunction/BlobPollingFunction.csproj -c Release -o /out
 

@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\BlobProcessing\BlobProcessing.csproj" />
+    <ProjectReference Include="..\BlobExtensionVersion\BlobExtensionVersion.csproj" />
   </ItemGroup>
 
   <ItemGroup>
