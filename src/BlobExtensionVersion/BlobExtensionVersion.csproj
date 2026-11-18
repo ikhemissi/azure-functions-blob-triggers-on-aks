@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Pins the Functions host's blob extension for the blob-polling app (see AssemblyInfo.cs). Delete this project when
+       a Microsoft.Azure.Functions.Worker.Extensions.Storage.Blobs release brings 5.3.10 or later itself. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Abstractions" Version="1.3.0" />
+  </ItemGroup>
+
+</Project>

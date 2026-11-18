@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/BlobExtensionVersion/BlobExtensionVersion.csproj" />
     <Project Path="src/BlobPollingFunction/BlobPollingFunction.csproj" />
     <Project Path="src/BlobProcessing/BlobProcessing.csproj" />
     <Project Path="src/QueueTriggeredFunction/QueueTriggeredFunction.csproj" />
