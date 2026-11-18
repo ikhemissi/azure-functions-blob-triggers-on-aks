@@ -15,3 +15,20 @@ spec:
           port: 53
         - protocol: TCP
           port: 443
+---
+# The Service Bus trigger talks AMQP over TCP 5671 (KEDA's message count uses HTTPS); only its pods may.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-amqp-servicebus-triggered
+  namespace: functions
+spec:
+  podSelector:
+    matchLabels:
+      app: servicebus-triggered
+  policyTypes:
+    - Egress
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 5671
