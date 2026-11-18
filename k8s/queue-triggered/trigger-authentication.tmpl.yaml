@@ -6,4 +6,4 @@ metadata:
 spec:
   podIdentity:
     provider: azure-workload
-    identityId: ${QUEUE_TRIGGERED_CLIENT_ID}
+    identityId: "{{ .Env.QUEUE_TRIGGERED_CLIENT_ID }}"

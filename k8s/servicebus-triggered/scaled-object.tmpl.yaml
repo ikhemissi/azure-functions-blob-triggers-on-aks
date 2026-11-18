@@ -6,13 +6,13 @@ metadata:
 spec:
   scaleTargetRef:
     name: servicebus-triggered
-  minReplicaCount: ${KEDA_MIN_REPLICAS}
-  maxReplicaCount: ${KEDA_MAX_REPLICAS}
+  minReplicaCount: {{ .Env.KEDA_MIN_REPLICAS }}
+  maxReplicaCount: {{ .Env.KEDA_MAX_REPLICAS }}
   triggers:
     - type: azure-servicebus
       metadata:
-        namespace: ${SERVICE_BUS_NAMESPACE}
+        namespace: "{{ .Env.SERVICE_BUS_NAMESPACE }}"
         queueName: blob-events
-        messageCount: "${KEDA_MESSAGES_PER_REPLICA}"
+        messageCount: "{{ .Env.KEDA_MESSAGES_PER_REPLICA }}"
       authenticationRef:
         name: servicebus-triggered

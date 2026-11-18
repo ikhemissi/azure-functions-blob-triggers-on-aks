@@ -26,7 +26,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: servicebus-triggered
-          image: ${SERVICE_SERVICEBUS_TRIGGERED_IMAGE_NAME}
+          image: "{{ .Env.SERVICE_SERVICEBUS_TRIGGERED_IMAGE_NAME }}"
           ports:
             - name: http
               containerPort: 80
@@ -35,25 +35,25 @@ spec:
             - name: AzureFunctionsWebHost__hostid
               value: servicebus-triggered
             - name: AzureWebJobsStorage__accountName
-              value: ${HOST_ACCOUNT_3}
+              value: "{{ .Env.HOST_ACCOUNT_3 }}"
             - name: AzureWebJobsStorage__credential
               value: workloadidentity
             - name: AzureWebJobsStorage__clientId
-              value: ${SERVICEBUS_TRIGGERED_CLIENT_ID}
+              value: "{{ .Env.SERVICEBUS_TRIGGERED_CLIENT_ID }}"
             - name: FUNCTIONS_WORKER_RUNTIME
               value: dotnet-isolated
             - name: APPLICATIONINSIGHTS_CONNECTION_STRING
-              value: ${APPLICATIONINSIGHTS_CONNECTION_STRING}
+              value: "{{ .Env.APPLICATIONINSIGHTS_CONNECTION_STRING }}"
             - name: PROCESSED_TABLE_URI
-              value: https://${HOST_ACCOUNT_3}.table.core.windows.net/processed
+              value: "https://{{ .Env.HOST_ACCOUNT_3 }}.table.core.windows.net/processed"
             - name: UPLOADS_BLOB_SERVICE_URI
-              value: https://${UPLOADS_ACCOUNT_3}.blob.core.windows.net/
+              value: "https://{{ .Env.UPLOADS_ACCOUNT_3 }}.blob.core.windows.net/"
             - name: BlobEventsServiceBus__fullyQualifiedNamespace
-              value: ${SERVICE_BUS_NAMESPACE}.servicebus.windows.net
+              value: "{{ .Env.SERVICE_BUS_NAMESPACE }}.servicebus.windows.net"
             - name: BlobEventsServiceBus__credential
               value: workloadidentity
             - name: BlobEventsServiceBus__clientId
-              value: ${SERVICEBUS_TRIGGERED_CLIENT_ID}
+              value: "{{ .Env.SERVICEBUS_TRIGGERED_CLIENT_ID }}"
             - name: POD_NAME
               valueFrom:
                 fieldRef:

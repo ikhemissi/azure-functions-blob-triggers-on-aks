@@ -1,15 +1,16 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: queue-triggered
+  name: blob-polling
   namespace: functions
   labels:
-    app: queue-triggered
-    trigger: storage-queue
+    app: blob-polling
+    trigger: blob-polling
 spec:
+  replicas: {{ .Env.BLOB_POLLING_REPLICAS }}
   selector:
     matchLabels:
-      app: queue-triggered
+      app: blob-polling
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -18,42 +19,42 @@ spec:
   template:
     metadata:
       labels:
-        app: queue-triggered
-        trigger: storage-queue
+        app: blob-polling
+        trigger: blob-polling
         azure.workload.identity/use: "true"
     spec:
-      serviceAccountName: queue-triggered
+      serviceAccountName: blob-polling
       terminationGracePeriodSeconds: 30
       containers:
-        - name: queue-triggered
-          image: ${SERVICE_QUEUE_TRIGGERED_IMAGE_NAME}
+        - name: blob-polling
+          image: "{{ .Env.SERVICE_BLOB_POLLING_IMAGE_NAME }}"
           ports:
             - name: http
               containerPort: 80
               protocol: TCP
           env:
             - name: AzureFunctionsWebHost__hostid
-              value: queue-triggered
+              value: blob-polling
             - name: AzureWebJobsStorage__accountName
-              value: ${HOST_ACCOUNT_2}
+              value: "{{ .Env.HOST_ACCOUNT_1 }}"
             - name: AzureWebJobsStorage__credential
               value: workloadidentity
             - name: AzureWebJobsStorage__clientId
-              value: ${QUEUE_TRIGGERED_CLIENT_ID}
+              value: "{{ .Env.BLOB_POLLING_CLIENT_ID }}"
             - name: FUNCTIONS_WORKER_RUNTIME
               value: dotnet-isolated
             - name: APPLICATIONINSIGHTS_CONNECTION_STRING
-              value: ${APPLICATIONINSIGHTS_CONNECTION_STRING}
+              value: "{{ .Env.APPLICATIONINSIGHTS_CONNECTION_STRING }}"
             - name: PROCESSED_TABLE_URI
-              value: https://${HOST_ACCOUNT_2}.table.core.windows.net/processed
-            - name: UPLOADS_BLOB_SERVICE_URI
-              value: https://${UPLOADS_ACCOUNT_2}.blob.core.windows.net/
-            - name: BlobEventsQueue__queueServiceUri
-              value: https://${UPLOADS_ACCOUNT_2}.queue.core.windows.net
-            - name: BlobEventsQueue__credential
+              value: "https://{{ .Env.HOST_ACCOUNT_1 }}.table.core.windows.net/processed"
+            - name: UploadsStorage__blobServiceUri
+              value: "https://{{ .Env.UPLOADS_ACCOUNT_1 }}.blob.core.windows.net"
+            - name: UploadsStorage__queueServiceUri
+              value: "https://{{ .Env.UPLOADS_ACCOUNT_1 }}.queue.core.windows.net"
+            - name: UploadsStorage__credential
               value: workloadidentity
-            - name: BlobEventsQueue__clientId
-              value: ${QUEUE_TRIGGERED_CLIENT_ID}
+            - name: UploadsStorage__clientId
+              value: "{{ .Env.BLOB_POLLING_CLIENT_ID }}"
             - name: POD_NAME
               valueFrom:
                 fieldRef:
