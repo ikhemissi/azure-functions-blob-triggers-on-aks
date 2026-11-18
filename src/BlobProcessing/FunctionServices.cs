@@ -38,7 +38,14 @@ public static class FunctionServices
                 ["podName"] = Environment.GetEnvironmentVariable("POD_NAME") ?? "local"
             }))
             .UseFunctionsWorkerDefaults()
-            .UseAzureMonitorExporter(options => options.Credential = credential);
+            .UseAzureMonitorExporter(options =>
+            {
+                options.Credential = credential;
+                // The exporter drops logs whose trace isn't sampled. A function's logs belong to the trace the host passes
+                // to the worker, which arrives unsampled while the host doesn't run OpenTelemetry: every log written
+                // during an invocation was dropped (seen 2026-11-18).
+                options.EnableTraceBasedLogsSampler = false;
+            });
     }
 
     public static BlobClient BlobFor(BlobCreatedEvent blobEvent, DefaultAzureCredential credential) =>
