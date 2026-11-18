@@ -63,7 +63,7 @@ What `PRIVATE_NETWORKING=true` changes; with `false`, none of it exists and ever
 | Upload account 2 (queue `blob-events`, `eventgrid-deadletter`) | blob, queue | `EVENT_GRID_DESTINATION_ACCESS` |
 | Upload account 3 (`eventgrid-deadletter`) | blob | `EVENT_GRID_DESTINATION_ACCESS` |
 | Service Bus namespace (Premium, 1 messaging unit) | namespace | `EVENT_GRID_DESTINATION_ACCESS` |
-| Registry (Premium) | registry | disabled; trusted services and ACR Tasks bypass the network rules (Q11, to verify) |
+| Registry (Premium) | registry | disabled; trusted services and ACR Tasks bypass the network rules, which doesn't cover azd's remote build: phase 2 images are built on the jumpbox ([05](experiments/05-making-phase-2-run.md)) |
 | AKS API server | (API Server VNet Integration) | private, no authorized IP ranges |
 
 `EVENT_GRID_DESTINATION_ACCESS` (phase 2 only, default `trusted`) is what Event Grid delivers into (Q5, Q6):
