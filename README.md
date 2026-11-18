@@ -24,7 +24,7 @@ Phase 1 (public endpoints, Entra only), 2026-11-18. Private networking (phase 2)
 |---|---|---|---|
 | Latency, 20 concurrent blobs, median (p95) | 5.4 s (5.9) | 12.7 s (13.6) with the default polling backoff; 1.5–2.7 s with `maxPollingInterval` 2 s | 1.6 s (1.7) |
 | Identity only (Workload Identity, no keys) | yes | yes | yes |
-| Scaling | fixed replicas (no KEDA scaler for new blobs) | KEDA; bounded by node capacity in the test | KEDA; one replica kept up with 500 messages |
+| Scaling | fixed replicas (no KEDA scaler for new blobs) | KEDA, to zero and back (first blob in 23 s); bounded by node capacity in the test | KEDA, to zero and back (23 s); one replica kept up with 500 messages |
 | Exactly one processing per blob (duplicates, killed pod, rolling restart, outage) | yes | yes | yes |
 | Malformed events | — | completed and logged; undecodable ones poisoned | dead-lettered with a reason |
 | Watch out for | WebJobs blob extension 5.3.10 or later | lower `maxPollingInterval` for latency | AMQP egress (TCP 5671) |
