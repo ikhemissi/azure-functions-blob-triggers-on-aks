@@ -4,7 +4,7 @@
 
 ## Summary
 
-Phase 1 (public endpoints, Entra authentication only) works for the three triggers with Workload Identity and no keys. Event Grid to Service Bus is the fastest path (median 1.6 s for 20 concurrent blobs), the polling Blob trigger follows (5.4 s), and Event Grid to a Storage queue is slowest with default settings (12.7 s, up to a minute after a quiet period, from the queue trigger's polling backoff). With the idempotency record, every blob was processed exactly once through duplicates, killed pods, rolling restarts and a network outage. Phase 2 (private networking) is next; nothing here answers the private-networking part of Q1 yet.
+Phase 1 (public endpoints, Entra authentication only) works for the three triggers with Workload Identity and no keys. Event Grid to Service Bus is the fastest path (median 1.6 s for 20 concurrent blobs), the polling Blob trigger follows (5.4 s), and Event Grid to a Storage queue is slowest with default settings (12.7 s, up to a minute after a quiet period, from the queue trigger's polling backoff; 1.5 to 2.7 s with `maxPollingInterval` at 2 s). With the idempotency record, every blob was processed exactly once through duplicates, killed pods, rolling restarts and a network outage. Phase 2 (private networking) is next; nothing here answers the private-networking part of Q1 yet.
 
 ## Answers
 
@@ -42,7 +42,7 @@ Event Grid's check at subscription creation accepted its Storage roles (queue se
 
 ### Q9 — End-to-end latency
 
-Phase 1, 20 concurrent blobs, median (p95): Service Bus 1.6 s (1.7), polling 5.4 s (5.9), Storage queue 12.7 s (13.6) ([02](experiments/02-phase-1-scenarios.md)). Private endpoints: phase 2.
+Phase 1, 20 concurrent blobs, median (p95): Service Bus 1.6 s (1.7), polling 5.4 s (5.9), Storage queue 12.7 s (13.6) ([02](experiments/02-phase-1-scenarios.md)). The Storage queue figure is the queue trigger's default polling backoff: with `extensions.queues.maxPollingInterval` at 2 s, its median was 1.5 to 2.7 s over three runs, at the price of polling an idle queue every 2 s ([03](experiments/03-queue-polling-interval.md)). Private endpoints: phase 2.
 
 ### Q10 — Probes
 

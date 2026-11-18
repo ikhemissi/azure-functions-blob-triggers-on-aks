@@ -12,7 +12,7 @@ Q1 is the spike's question; Q2 to Q13 are what it takes to answer it. [docs/DESI
 | Q6 | Event Grid to a Service Bus Premium queue with the system topic's identity: does delivery work with public access (a) on, (b) limited with trusted services, (c) disabled? | — | open |
 | Q7 | KEDA with Workload Identity: do apps 2 and 3 scale out under a batch and back to the minimum, and to zero when allowed, and how fast? | 02 | partly answered |
 | Q8 | The least roles each identity needs: the apps', KEDA's (queue length, Service Bus message count) and Event Grid's (delivery, dead-letter). | 01 | partly answered |
-| Q9 | End-to-end latency (upload to processed) per trigger, for one blob, concurrent blobs and a batch, with public endpoints and then private ones. | 02 | partly answered |
+| Q9 | End-to-end latency (upload to processed) per trigger, for one blob, concurrent blobs and a batch, with public endpoints and then private ones. | 02, 03 | partly answered |
 | Q10 | Probes: is the host's anonymous `/admin/host/ping` usable for liveness and readiness, including while the host starts? | 01, 02 | partly answered |
 | Q11 | Phase 2 operations: deploying to the private cluster through a Bastion jumpbox, and building images with ACR Tasks into a private registry. | — | open |
 | Q12 | At-least-once delivery: duplicates (Event Grid redelivery, pod restart during processing, rolling deployment, a dependency briefly unavailable), poison and dead-letter handling; does the idempotency record keep exactly one processing per blob? | 02 | answered (phase 1) |
