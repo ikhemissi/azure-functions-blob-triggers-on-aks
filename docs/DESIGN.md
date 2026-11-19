@@ -71,7 +71,7 @@ What `PRIVATE_NETWORKING=true` changes; with `false`, none of it exists and ever
 | Value | Public network access | Default action | Bypass |
 |---|---|---|---|
 | `enabled` | enabled, all networks | Allow | storage `AzureServices` and a resource instance rule per Event Grid system topic; Service Bus trusted services |
-| `trusted` | enabled, selected networks, no IP or virtual network rules | Deny | the same |
+| `trusted` | storage: enabled, selected networks, no IP or virtual network rules; Service Bus: disabled (it refuses Deny without rules while public access is on) | Deny | the same |
 | `disabled` | disabled | Deny | the same (not claimed to work until an experiment shows it) |
 
 Network security groups (`nsg-aks-nodes-<env>`, `nsg-private-endpoints-<env>`) on `aks-nodes` and `private-endpoints`: allow what the cluster (nodes, pods, the API server subnet, Azure Load Balancer) and the private endpoints (HTTPS, AMQP from the virtual network) need, deny the rest inbound from the internet. `AzureBastionSubnet` and `jumpbox` get theirs with the Bastion block.
