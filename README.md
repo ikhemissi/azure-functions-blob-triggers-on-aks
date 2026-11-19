@@ -2,19 +2,13 @@
 
 **Question:** Which way of triggering Azure Functions on AKS after a blob upload (the polling Blob trigger, Event Grid to a Storage queue, or Event Grid to Service Bus) works best with private networking, identity-only access and KEDA scaling, and at what latency, cost and operational effort?
 
-**Time box:** 3 phases, stop and report after each · **Status:** in progress
+**Time box:** 3 phases, stop and report after each · **Status:** phases 1 to 3 done (2026-11-19)
 
 ## The setup
 
-TODO: what runs where, in a few sentences, and with which identities; then the diagram of the components (a
-`flowchart`, one arrow per call, labelled with the identity it uses).
+Three Function apps (.NET 10, isolated worker) run side by side in one AKS cluster, one per way of triggering, each with its own upload account, its own host account and its own Workload Identity: no keys, SAS or connection strings anywhere. Event Grid delivers with its system topics' managed identities. Phase 1 uses public endpoints; phase 2 puts every account, the Service Bus namespace, the registry and the API server behind private endpoints, and is operated from a jumpbox reached through an on-demand Bastion session. Details: [docs/DESIGN.md](docs/DESIGN.md).
 
-```mermaid
-flowchart LR
-    user(["User"]) --> client["TODO: client or agent"]
-    client -->|"TODO: identity"| service["TODO: what the spike examines"]
-    service --> dependency["TODO: what it calls"]
-```
+![Three ways to trigger Azure Functions on AKS after a blob upload. A client uploads a blob to one of three accounts. The blob-polling app lists its container every 10 s and reads new blobs: median 3 to 13 s, no KEDA, about 8 euros a month at a million blobs. Event Grid delivers the second account's event into a Storage queue that the queue-triggered app polls every 2 s: median 1.5 to 2.7 s, KEDA, about 2 euros. Event Grid delivers the third account's event into a Service Bus Premium queue that the servicebus-triggered app receives from: median 0.9 to 1.9 s, KEDA, about 608 euros for Premium. The accounts and Service Bus sit outside the virtual network with their public access off; the apps, in the aks-nodes subnet, reach them through private endpoints in the private-endpoints subnet, both subnets with network security groups. Event Grid's system topics have no subnet and no network security group: they deliver as a trusted service with their managed identities.](docs/overview.svg)
 
 ## Key findings
 
