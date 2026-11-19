@@ -4,7 +4,7 @@ Q1 is the spike's question; Q2 to Q13 are what it takes to answer it. [docs/DESI
 
 | # | Question | Experiments | Status |
 |---|---|---|---|
-| Q1 | Which way of triggering Azure Functions on AKS after a blob upload (the polling Blob trigger, Event Grid to a Storage queue, or Event Grid to Service Bus) works best with private networking, identity-only access and KEDA scaling, and at what latency, cost and operational effort? | 02, 05, 06, 07 | partly answered (cost: phase 3) |
+| Q1 | Which way of triggering Azure Functions on AKS after a blob upload (the polling Blob trigger, Event Grid to a Storage queue, or Event Grid to Service Bus) works best with private networking, identity-only access and KEDA scaling, and at what latency, cost and operational effort? | 02 to 08 | answered |
 | Q2 | Does the Functions host in a container on AKS use Workload Identity for its own storage and for the three triggers (`__credential=workloadidentity`), with no keys or connection strings? | 01 | answered (phase 1) |
 | Q3 | Host IDs: do the replicas of one app share an explicit host ID (receipts, leases, singleton scan), what happens without one, and what happens to existing blobs when the host ID or the host storage changes? | 01, 02, 04 | partly answered |
 | Q4 | The polling Blob trigger: latency for one blob and for batches, where its receipts and scan state live, behaviour with 2 replicas, and what it does without permission to turn on the account's analytics logs? | 01, 02 | answered (phase 1) |
@@ -16,6 +16,6 @@ Q1 is the spike's question; Q2 to Q13 are what it takes to answer it. [docs/DESI
 | Q10 | Probes: is the host's anonymous `/admin/host/ping` usable for liveness and readiness, including while the host starts? | 01, 02, 04 | answered |
 | Q11 | Phase 2 operations: deploying to the private cluster through a Bastion jumpbox, and building images with ACR Tasks into a private registry. | 05 | answered |
 | Q12 | At-least-once delivery: duplicates (Event Grid redelivery, pod restart during processing, rolling deployment, a dependency briefly unavailable), poison and dead-letter handling; does the idempotency record keep exactly one processing per blob? | 02, 06 | answered |
-| Q13 | Cost: per month for each option, and for the spike's days. | — | open |
+| Q13 | Cost: per month for each option, and for the spike's days. | 08 | answered |
 
 Status: `open`, `answered`, `partly answered`, `unanswered` (with what blocked it).

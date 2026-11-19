@@ -4,13 +4,22 @@
 
 ## Summary
 
-Phase 1 (public endpoints, Entra authentication only) works for the three triggers with Workload Identity and no keys. Event Grid to Service Bus is the fastest path (median 1.6 s for 20 concurrent blobs), the polling Blob trigger follows (5.4 s), and Event Grid to a Storage queue is slowest with default settings (12.7 s, up to a minute after a quiet period, from the queue trigger's polling backoff; 1.5 to 2.7 s with `maxPollingInterval` at 2 s). With the idempotency record, every blob was processed exactly once through duplicates, killed pods, rolling restarts and a network outage. Phase 2 (private endpoints everywhere, private API server and registry) changed none of these results ([06](experiments/06-phase-2-scenarios.md)), and Event Grid kept delivering with public access off on its destinations ([07](experiments/07-event-grid-destination-access.md)); operations move to a jumpbox, where the images are also built ([05](experiments/05-making-phase-2-run.md)). Cost: phase 3.
+Phase 1 (public endpoints, Entra authentication only) works for the three triggers with Workload Identity and no keys. Event Grid to Service Bus is the fastest path (median 1.6 s for 20 concurrent blobs), the polling Blob trigger follows (5.4 s), and Event Grid to a Storage queue is slowest with default settings (12.7 s, up to a minute after a quiet period, from the queue trigger's polling backoff; 1.5 to 2.7 s with `maxPollingInterval` at 2 s). With the idempotency record, every blob was processed exactly once through duplicates, killed pods, rolling restarts and a network outage. Phase 2 (private endpoints everywhere, private API server and registry) changed none of these results ([06](experiments/06-phase-2-scenarios.md)), and Event Grid kept delivering with public access off on its destinations ([07](experiments/07-event-grid-destination-access.md)); operations move to a jumpbox, where the images are also built ([05](experiments/05-making-phase-2-run.md)). Cost decides between the event-driven options with private networking: Service Bus Premium is about €608 a month, the Storage queue's own cost a few euros ([08](experiments/08-costs.md)). Answer to Q1: Event Grid to a Storage queue with a lowered polling interval.
 
 ## Answers
 
 ### Q1 — Which way of triggering Azure Functions on AKS after a blob upload works best with private networking, identity-only access and KEDA scaling, and at what latency, cost and operational effort?
 
-Partly answered (cost: phase 3). With public endpoints, Service Bus gives the lowest latency and kept up with 500 messages on one replica; the Storage queue needs its polling interval tuned to compete; the polling Blob trigger is simple but needs WebJobs blob extension 5.3.10 or later, and doesn't scale with KEDA ([02](experiments/02-phase-1-scenarios.md)). With private networking, all three behave as with public endpoints, and Event Grid delivers into destinations with public access off ([06](experiments/06-phase-2-scenarios.md), [07](experiments/07-event-grid-destination-access.md)); the polling trigger needs no Event Grid at all, the two others need its system topics' identities and trusted-service settings.
+**Event Grid to a Storage queue, with the queue trigger's `maxPollingInterval` lowered (2 s here),** for private networking with identity only and KEDA:
+
+- **Latency:** median 1.5 to 2.7 s for 20 concurrent blobs, against 0.9 to 1.9 s for Service Bus and 3 to 13 s for the polling trigger, over the runs of [03](experiments/03-queue-polling-interval.md), [06](experiments/06-phase-2-scenarios.md) and [07](experiments/07-event-grid-destination-access.md). With the default backoff it is the slowest (13 s, up to a minute after a quiet period).
+- **Cost:** about €2 a month of its own at a million blobs; Service Bus needs Premium for private endpoints, about €608 a month ([08](experiments/08-costs.md)).
+- **Private networking and identity:** Event Grid delivers into the account with its public access off; the app, KEDA and Event Grid use managed identities only ([07](experiments/07-event-grid-destination-access.md)).
+- **Scaling:** KEDA's queue scaler, to zero and back in about 23 s ([04](experiments/04-scale-to-zero-host-id-probes.md)).
+
+**Service Bus** when its features matter more than about €600 a month (dead-lettering with a reason, sessions, duplicate detection) or its push latency does; it behaved the same in every scenario. **The polling Blob trigger** needs no Event Grid and costs little, but it doesn't scale with KEDA, its latency follows a 10 s container scan, it needs WebJobs blob extension 5.3.10 or later, and every new pod without a shared host ID processes the whole container again ([01](experiments/01-making-phase-1-run.md), [04](experiments/04-scale-to-zero-host-id-probes.md)).
+
+Operational effort is the same for the three in phase 2: deployments and tests run from a jumpbox in the network, and images are built there ([05](experiments/05-making-phase-2-run.md)). Every option processed each blob exactly once with the idempotency record (Q12).
 
 ### Q2 — Workload Identity
 
@@ -58,7 +67,7 @@ Exactly one processing record per blob through duplicate deliveries, a killed po
 
 ### Q13 — Cost
 
-Phase 3.
+Each trigger's own cost per month at a million blobs, list prices ([08](experiments/08-costs.md)): Storage queue €1.58 (€2.04 polled every 2 s), polling trigger €7.77, Service Bus Standard €9.46 with public endpoints; with private endpoints, Service Bus needs Premium, €608 for one messaging unit. Shared by every option in phase 2: private endpoints (about €33 a month per app), the registry Premium (€41 more than Basic) and a Bastion session (€0.39 a working hour). The spike's environment: €0.19 an hour in phase 1, €1.22 in phase 2.
 
 ## What we would do differently
 
