@@ -11,16 +11,20 @@ resource "azurerm_servicebus_namespace" "main" {
   capacity                      = var.private_networking ? 1 : 0
   premium_messaging_partitions  = var.private_networking ? 1 : 0
   local_auth_enabled            = false
-  public_network_access_enabled = local.is_event_grid_destination_public_access_enabled
+  public_network_access_enabled = local.is_service_bus_public_access_enabled
   minimum_tls_version           = "1.2"
   tags                          = local.tags
 }
 
-# Phase 2: Event Grid delivers into the namespace as a trusted service (Q6, EVENT_GRID_DESTINATION_ACCESS). The provider
-# refuses default action Deny without IP or virtual network rules, which is the trusted shape, so the rule set is set
-# here; API versions from 2021-06-01-preview enforce Deny even with no rules
-# (https://learn.microsoft.com/azure/service-bus-messaging/service-bus-ip-filtering). To verify (Q6): a client outside
-# the virtual network is refused while Event Grid still delivers.
+# Phase 2: Event Grid delivers into the namespace as a trusted service (Q6, EVENT_GRID_DESTINATION_ACCESS). Service Bus
+# refuses default action Deny without IP or virtual network rules while public access is on ("InvalidNetworkRuleSetUpdate":
+# to restrict data-plane requests to private links, disable public access), so for "trusted" and "disabled" the
+# namespace takes no public traffic and keeps the trusted-services bypass; the two modes differ for the storage accounts
+# only (docs/experiments/07-event-grid-destination-access.md).
+locals {
+  is_service_bus_public_access_enabled = local.event_grid_destination_access == "enabled"
+}
+
 resource "azapi_update_resource" "service_bus_network_rule_set" {
   count = var.private_networking ? 1 : 0
 
@@ -29,7 +33,7 @@ resource "azapi_update_resource" "service_bus_network_rule_set" {
   body = {
     properties = {
       defaultAction               = local.event_grid_destination_default_action
-      publicNetworkAccess         = local.is_event_grid_destination_public_access_enabled ? "Enabled" : "Disabled"
+      publicNetworkAccess         = local.is_service_bus_public_access_enabled ? "Enabled" : "Disabled"
       trustedServiceAccessEnabled = true
       ipRules                     = []
       virtualNetworkRules         = []

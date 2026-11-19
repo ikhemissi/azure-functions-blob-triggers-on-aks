@@ -154,10 +154,10 @@ run "private_trusted" {
   assert {
     condition = (
       azapi_update_resource.service_bus_network_rule_set[0].body.properties.defaultAction == "Deny" &&
-      azapi_update_resource.service_bus_network_rule_set[0].body.properties.publicNetworkAccess == "Enabled" &&
-      azurerm_servicebus_namespace.main.public_network_access_enabled
+      azapi_update_resource.service_bus_network_rule_set[0].body.properties.publicNetworkAccess == "Disabled" &&
+      !azurerm_servicebus_namespace.main.public_network_access_enabled
     )
-    error_message = "trusted: the namespace takes public traffic from selected networks only (none), default action Deny."
+    error_message = "trusted: the namespace takes no public traffic (Service Bus refuses Deny without rules otherwise)."
   }
   assert {
     condition     = azapi_update_resource.aks_api_server_access.body.properties.apiServerAccessProfile.enablePrivateCluster == true
