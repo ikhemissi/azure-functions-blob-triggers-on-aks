@@ -18,12 +18,13 @@ flowchart LR
 
 ## Key findings
 
-Phase 1 (public endpoints, Entra only), 2026-11-18. Private networking (phase 2) and cost (phase 3) are still to come.
+Phases 1 (public endpoints, Entra only, 2026-11-18) and 2 (private endpoints, private API server and registry, 2026-11-19). Cost comes with phase 3.
 
 | | Polling Blob trigger | Event Grid → Storage queue | Event Grid → Service Bus |
 |---|---|---|---|
-| Latency, 20 concurrent blobs, median (p95) | 5.4 s (5.9) | 12.7 s (13.6) with the default polling backoff; 1.5–2.7 s with `maxPollingInterval` 2 s | 1.6 s (1.7) |
+| Latency, 20 concurrent blobs, median (p95), phase 1 (phase 2: no measurable difference) | 5.4 s (5.9) | 12.7 s (13.6) with the default polling backoff; 1.5–2.7 s with `maxPollingInterval` 2 s | 1.6 s (1.7) |
 | Identity only (Workload Identity, no keys) | yes | yes | yes |
+| Private endpoints, destinations' public access off | yes | yes | yes |
 | Scaling | fixed replicas (no KEDA scaler for new blobs) | KEDA, to zero and back (first blob in 23 s); bounded by node capacity in the test | KEDA, to zero and back (23 s); one replica kept up with 500 messages |
 | Exactly one processing per blob (duplicates, killed pod, rolling restart, outage) | yes | yes | yes |
 | Malformed events | — | completed and logged; undecodable ones poisoned | dead-lettered with a reason |
