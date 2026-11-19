@@ -1,6 +1,6 @@
 # ADR-0007 — Securing Event Grid delivery to the Storage queue and to Service Bus
 
-**Status:** Proposed · **Date:** 2026-11-18
+**Status:** Accepted (2026-11-19) · **Date:** 2026-11-18
 
 ## Context
 
@@ -45,8 +45,12 @@ Documented:
 - Event Grid system topics in Storage's trusted services: [Trusted Azure services — managed identity](https://learn.microsoft.com/azure/storage/common/storage-network-security-trusted-azure-services#trusted-access-based-on-a-managed-identity); Service Bus: [Trusted Microsoft services](https://learn.microsoft.com/azure/service-bus-messaging/service-bus-service-endpoints#trusted-microsoft-services).
 - Traffic on the Microsoft backbone, public IP space, managed identity: [Deliver events securely by using managed identities](https://learn.microsoft.com/azure/event-grid/deliver-events-using-managed-identity).
 
-To verify:
+Observed:
 
-- Delivery to the Storage queue with public access on, limited with trusted services, disabled (Q5).
-- Delivery to the Service Bus Premium queue in the same three cases (Q6).
-- The narrowest scope Event Grid accepts for each role, again in phase 2 (Q8).
+- Delivery to the Storage queue with public access on, limited to no networks with trusted services, and off ([07](../experiments/07-event-grid-destination-access.md)) (Q5).
+- Delivery to the Service Bus Premium queue with public access on and off; Service Bus refuses default action Deny without rules while public access is on ([07](../experiments/07-event-grid-destination-access.md)) (Q6).
+- Clients outside the virtual network were refused in the restricted modes, while Event Grid delivered ([07](../experiments/07-event-grid-destination-access.md)).
+
+Still to verify:
+
+- The narrowest scope Event Grid accepts for each role in phase 2 (Q8): the Storage roles stay on the accounts.

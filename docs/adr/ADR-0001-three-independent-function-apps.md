@@ -1,6 +1,6 @@
 # ADR-0001 — Three independent Function apps with three unique Functions host IDs
 
-**Status:** Proposed · **Date:** 2026-11-18
+**Status:** Accepted (2026-11-19) · **Date:** 2026-11-18
 
 ## Context
 
@@ -36,8 +36,11 @@ Documented:
 - The host ID identifies an app in its storage, the default is derived from the app name truncated to 32 characters, and a collision stops the host in runtime 4.x: [Storage considerations — Host ID considerations](https://learn.microsoft.com/azure/azure-functions/storage-considerations#host-id-considerations).
 - `AzureFunctionsWebHost__hostid` overrides the generated ID; 1 to 32 lowercase letters, digits and dashes: [App settings reference — AzureFunctionsWebHost__hostid](https://learn.microsoft.com/azure/azure-functions/functions-app-settings#azurefunctionswebhost__hostid).
 
-To verify:
+Observed:
 
-- Each app's host runs with Workload Identity only, for its own storage and its trigger, with no keys (Q2).
-- Each app's host uses its explicit host ID in its host storage, and the replicas of one app share it (Q3).
+- Each app's host and trigger run with Workload Identity only, with no keys ([01](../experiments/01-making-phase-1-run.md)), with public endpoints and through private endpoints ([06](../experiments/06-phase-2-scenarios.md)) (Q2).
+- The replicas of each app share its explicit host ID; restarts and rolling updates processed no blob twice ([02](../experiments/02-phase-1-scenarios.md), [04](../experiments/04-scale-to-zero-host-id-probes.md)) (Q3).
+
+Still to verify:
+
 - The least roles each app's identity needs (Q8).

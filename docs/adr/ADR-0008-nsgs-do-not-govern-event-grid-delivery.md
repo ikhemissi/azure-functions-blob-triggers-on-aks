@@ -1,6 +1,6 @@
 # ADR-0008 — Network security groups cannot govern Event Grid's deliveries
 
-**Status:** Proposed · **Date:** 2026-11-18
+**Status:** Accepted (2026-11-19) · **Date:** 2026-11-18
 
 ## Context
 
@@ -38,7 +38,10 @@ Documented:
 - Push delivery can't deliver to private endpoints: [Deliver events securely over a private link](https://learn.microsoft.com/azure/event-grid/consume-private-endpoints); delivery with managed identity in public IP space on the Microsoft backbone: [Deliver events securely by using managed identities](https://learn.microsoft.com/azure/event-grid/deliver-events-using-managed-identity).
 - Storage network rules and trusted-service exceptions: [Firewall rules and network access control for Azure Storage](https://learn.microsoft.com/azure/storage/common/storage-network-security); Azure Monitor resource logs for the data plane: [Storage considerations — Storage logs](https://learn.microsoft.com/azure/azure-functions/storage-considerations#storage-logs).
 
-To verify:
+Observed:
 
-- Which network settings on account 2 let Event Grid deliver, and where its writes show in the account's logs (Q5).
-- The same for the Service Bus Premium namespace (Q6).
+- Event Grid delivered with every setting tested on account 2 and on the namespace, up to public access off; the network security groups on the virtual network's subnets play no part in it ([07](../experiments/07-event-grid-destination-access.md)) (Q5, Q6).
+
+Still to verify:
+
+- Where Event Grid's writes show in the account's and the namespace's logs (Q5, Q6).
