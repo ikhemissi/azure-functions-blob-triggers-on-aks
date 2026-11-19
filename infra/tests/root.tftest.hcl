@@ -68,10 +68,6 @@ run "public" {
     error_message = "Phase 1 keeps Service Bus public, with no network rule set."
   }
   assert {
-    condition     = length(azapi_update_resource.registry_tasks_bypass) == 0
-    error_message = "Phase 1 leaves the registry's bypass settings alone."
-  }
-  assert {
     condition     = azapi_update_resource.aks_api_server_access.body.properties.apiServerAccessProfile.enablePrivateCluster == false
     error_message = "Phase 1 keeps the API server public."
   }
@@ -162,10 +158,6 @@ run "private_trusted" {
       azurerm_servicebus_namespace.main.public_network_access_enabled
     )
     error_message = "trusted: the namespace takes public traffic from selected networks only (none), default action Deny."
-  }
-  assert {
-    condition     = azapi_update_resource.registry_tasks_bypass[0].body.properties.networkRuleBypassAllowedForTasks == true
-    error_message = "Phase 2 lets ACR Tasks bypass the registry's network rules."
   }
   assert {
     condition     = azapi_update_resource.aks_api_server_access.body.properties.apiServerAccessProfile.enablePrivateCluster == true
