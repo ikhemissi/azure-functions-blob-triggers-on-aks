@@ -237,8 +237,19 @@ found_record_count() {
 
 # Counts the app's records written since the run started, matched or not; usable while the upload is still running
 # (before the expected row keys exist). Assumes no other run uploads to the app at the same time.
+# A progress figure while a batch is processed: the records written since this run started. RUN_QUERY_SINCE's margin
+# would also count the records of a run that ended less than five minutes before.
 recent_record_count() {
-  recorded_row_keys "$1" | wc -l
+  local app="$1"
+
+  az storage entity query \
+    --account-name "$(host_account "$app")" \
+    --table-name processed \
+    --auth-mode login \
+    --filter "PartitionKey eq '${app}' and Timestamp ge datetime'${RUN_STARTED_AT}'" \
+    --select RowKey \
+    --query 'length(items)' \
+    --output tsv
 }
 
 expected_blob_count() {
