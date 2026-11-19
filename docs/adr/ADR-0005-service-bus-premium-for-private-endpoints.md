@@ -1,6 +1,6 @@
 # ADR-0005 — Service Bus Premium for private endpoints, Standard while the endpoints are public
 
-**Status:** Proposed · **Date:** 2026-11-18
+**Status:** Accepted (2026-11-19) · **Date:** 2026-11-18
 
 ## Context
 
@@ -38,8 +38,8 @@ Documented:
 - Premium: messaging units, fixed pricing: [Service Bus Premium and Standard tiers](https://learn.microsoft.com/azure/service-bus-messaging/service-bus-premium-messaging).
 - Max delivery count and the dead-letter queue: [Service Bus dead-letter queues — Maximum delivery count](https://learn.microsoft.com/azure/service-bus-messaging/service-bus-dead-letter-queues#maximum-delivery-count).
 
-To verify:
+Observed:
 
-- Event Grid delivery to the Premium queue with public access on, limited with trusted services, disabled (Q6).
-- Whether the phase change replaces the namespace in the Terraform plan (Q6, read in `azd provision --preview`).
-- Latency per tier and phase (Q9); cost of Standard and of Premium for the spike's days and per month (Q13).
+- Event Grid delivered into the Premium queue with public access on and off; the "limited, no rules" shape is refused by the namespace, so it is public access off ([07](../experiments/07-event-grid-destination-access.md)) (Q6).
+- The phase change replaced the namespace under the same name (`sku` and `premium_messaging_partitions` force a new resource), with its queue and role assignments; the apps reconnected without a change ([05](../experiments/05-making-phase-2-run.md)) (Q6).
+- Latency was the same with Standard and Premium, median 0.9 to 1.9 s for 20 blobs ([02](../experiments/02-phase-1-scenarios.md), [06](../experiments/06-phase-2-scenarios.md)) (Q9); one Premium messaging unit is about €608 a month, Standard €9 plus operations ([08](../experiments/08-costs.md)) (Q13).

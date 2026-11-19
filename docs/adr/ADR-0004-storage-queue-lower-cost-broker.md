@@ -1,6 +1,6 @@
 # ADR-0004 — Storage queue evaluated as the lower-cost broker
 
-**Status:** Proposed · **Date:** 2026-11-18
+**Status:** Accepted (2026-11-19) · **Date:** 2026-11-18
 
 ## Context
 
@@ -34,9 +34,9 @@ Documented:
 - Private endpoints for Storage queues: [Use private endpoints for Azure Storage](https://learn.microsoft.com/azure/storage/common/storage-private-endpoints).
 - Service Bus Premium has fixed pricing, Standard pay-as-you-go: [Service Bus Premium and Standard tiers](https://learn.microsoft.com/azure/service-bus-messaging/service-bus-premium-messaging).
 
-To verify:
+Observed:
 
-- Event Grid delivery to the queue with public access on, limited with trusted services, disabled; and the encoding the trigger needs (Q5).
-- KEDA's `azure-queue` scaler with Workload Identity scales app 2 out and back (Q7).
-- Poison handling and duplicates end to end (Q12).
-- The monthly cost against Service Bus (Q13).
+- Event Grid delivered into the queue with the account's public access on, limited to no networks with trusted services, and off; messages arrive Base64-encoded ([07](../experiments/07-event-grid-destination-access.md)) (Q5).
+- KEDA's `azure-queue` scaler with Workload Identity scaled app 2 out (bounded by the nodes), back, and to zero and back ([02](../experiments/02-phase-1-scenarios.md), [04](../experiments/04-scale-to-zero-host-id-probes.md)) (Q7).
+- Duplicates processed once; undecodable messages poisoned; malformed events completed and logged ([02](../experiments/02-phase-1-scenarios.md), [06](../experiments/06-phase-2-scenarios.md)) (Q12).
+- About €1.58 a month of its own at a million blobs (€2.04 polled every 2 s), against €608 for Service Bus Premium with private endpoints ([08](../experiments/08-costs.md)) (Q13). It is the spike's answer to Q1, with `maxPollingInterval` lowered ([03](../experiments/03-queue-polling-interval.md)).

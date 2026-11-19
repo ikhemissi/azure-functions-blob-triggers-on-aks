@@ -1,6 +1,6 @@
 # ADR-0002 — Replicas of one Deployment share one host ID
 
-**Status:** Proposed · **Date:** 2026-11-18
+**Status:** Accepted (2026-11-19) · **Date:** 2026-11-18
 
 ## Context
 
@@ -35,8 +35,12 @@ Documented:
 - Changing the host ID or the host storage account can make the Blob trigger process blobs again: [Storage considerations — Avoiding host ID collisions](https://learn.microsoft.com/azure/azure-functions/storage-considerations#avoiding-host-id-collisions).
 - Default host ID in a Kubernetes environment: [`ScriptHostIdProvider.cs` L74–L103](https://github.com/Azure/azure-functions-host/blob/2e401ef5816d52eec09d574839787bb2d043a012/src/WebJobs.Script/Host/ScriptHostIdProvider.cs#L74-L103); detection of Kubernetes: [`EnvironmentExtensions.cs` L465](https://github.com/Azure/azure-functions-host/blob/2e401ef5816d52eec09d574839787bb2d043a012/src/WebJobs.Script/Environment/EnvironmentExtensions.cs#L465) (source read on 2026-11-17).
 
-To verify:
+Observed:
 
-- The two replicas of `blob-polling` share the host ID, the receipts and one singleton scan, and where the scan's lock lives (Q3, Q4).
-- What the host does on AKS without an explicit host ID, with and without `POD_NAMESPACE` (Q3).
-- What happens to existing blobs when the host ID or the host storage account changes (Q3).
+- The two replicas of `blob-polling` share the host ID and its receipts under `azure-webjobs-hosts/blobreceipts/<host ID>/`; restarting every Deployment processed none of the existing blobs again ([02](../experiments/02-phase-1-scenarios.md), scenario 10) (Q3, Q4).
+- Without an explicit host ID, each pod takes one made of its pod name: every new pod found no receipts and processed the whole container again (3,236 blobs × 2 pods, all caught as duplicates) ([04](../experiments/04-scale-to-zero-host-id-probes.md)) (Q3).
+- With `POD_NAMESPACE` set, the host behaves as on App Service on Kubernetes and the blob trigger's listener fails ([01](../experiments/01-making-phase-1-run.md)) (Q3).
+
+Still to verify:
+
+- What happens to existing blobs when the host storage account changes (Q3).

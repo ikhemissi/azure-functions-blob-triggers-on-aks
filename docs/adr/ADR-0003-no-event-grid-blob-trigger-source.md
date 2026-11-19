@@ -1,6 +1,6 @@
 # ADR-0003 — The Event Grid-based Blob trigger source is not used for the private AKS scenario
 
-**Status:** Proposed · **Date:** 2026-11-18
+**Status:** Accepted (2026-11-19) · **Date:** 2026-11-18
 
 ## Context
 
@@ -34,6 +34,6 @@ Documented:
 - The webhook endpoint, its extension key and the *Web Hook* endpoint type: [Tutorial: trigger on blob containers using an event subscription — Build the endpoint URL](https://learn.microsoft.com/azure/azure-functions/functions-event-grid-blob-trigger#build-the-endpoint-url).
 - Push delivery can't deliver to private endpoints; pull delivery (namespaces) can be consumed over a private link: [Deliver events securely over a private link](https://learn.microsoft.com/azure/event-grid/consume-private-endpoints).
 
-To verify:
+Observed:
 
-- The polling Blob trigger's latency for one blob and for batches, as the baseline against the event-driven paths (Q4, Q9).
+- The polling Blob trigger's latency: one blob 2.6 to 20.6 s, median for 20 concurrent blobs 3.3 to 12.7 s over the runs of [02](../experiments/02-phase-1-scenarios.md), [03](../experiments/03-queue-polling-interval.md), [06](../experiments/06-phase-2-scenarios.md) and [07](../experiments/07-event-grid-destination-access.md), set by its 10 s container scan (Q4, Q9).

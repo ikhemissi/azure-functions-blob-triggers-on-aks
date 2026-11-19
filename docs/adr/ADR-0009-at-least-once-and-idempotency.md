@@ -1,6 +1,6 @@
 # ADR-0009 — At-least-once delivery and idempotency
 
-**Status:** Proposed · **Date:** 2026-11-18
+**Status:** Accepted (2026-11-19) · **Date:** 2026-11-18
 
 ## Context
 
@@ -39,7 +39,7 @@ Documented:
 - Queue trigger poison queue: [Poison messages](https://learn.microsoft.com/azure/azure-functions/functions-bindings-storage-queue-trigger#poison-messages); poison blobs: [Poison blobs](https://learn.microsoft.com/azure/azure-functions/functions-bindings-storage-blob-trigger#poison-blobs); Service Bus max delivery count and lock expiry: [Service Bus dead-letter queues](https://learn.microsoft.com/azure/service-bus-messaging/service-bus-dead-letter-queues#maximum-delivery-count).
 - Designing functions for identical input: [Designing Azure Functions for identical input](https://learn.microsoft.com/azure/azure-functions/functions-idempotent); duplicate detection is a Service Bus feature, not a Storage queue one: [Storage queues and Service Bus queues — compared and contrasted](https://learn.microsoft.com/azure/service-bus-messaging/service-bus-azure-and-service-bus-queues-compared-contrasted).
 
-To verify:
+Observed:
 
-- Duplicates from Event Grid redelivery, a pod restart during processing, a rolling deployment and a dependency briefly unavailable; poison and dead-letter handling; exactly one record per blob version (Q12).
-- The polling Blob trigger's receipts with two replicas (Q4).
+- Exactly one processing record per blob through Event Grid redelivery (a copy of the event), a pod deleted mid-batch, a rolling restart mid-batch, 60 s without egress and malformed events, with public endpoints and through private endpoints ([02](../experiments/02-phase-1-scenarios.md), [06](../experiments/06-phase-2-scenarios.md)) (Q12).
+- The polling trigger's receipts with two replicas: no blob processed twice across restarts; without a shared host ID, the record caught every repeat ([02](../experiments/02-phase-1-scenarios.md), [04](../experiments/04-scale-to-zero-host-id-probes.md)) (Q4).

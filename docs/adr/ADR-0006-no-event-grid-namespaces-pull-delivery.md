@@ -1,6 +1,6 @@
 # ADR-0006 — Event Grid namespaces with pull delivery are not in this first spike
 
-**Status:** Proposed · **Date:** 2026-11-18
+**Status:** Accepted (2026-11-19) · **Date:** 2026-11-18
 
 ## Context
 
@@ -30,6 +30,6 @@ Documented:
 - Pull supports private links; push does not deliver to private endpoints: [Deliver events securely over a private link](https://learn.microsoft.com/azure/event-grid/consume-private-endpoints).
 - Namespaces: [Event Grid namespace concepts](https://learn.microsoft.com/azure/event-grid/concepts-event-grid-namespaces).
 
-To verify:
+Observed:
 
-- Nothing in this spike: recorded under "What we would do differently" in the findings, as an open point for Q1 (which option works best with private networking).
+- Nothing in this spike tests it: an open point for a later spike, should the cost of Service Bus Premium or Event Grid's path to public endpoints matter more than in [08](../experiments/08-costs.md) and [07](../experiments/07-event-grid-destination-access.md).
