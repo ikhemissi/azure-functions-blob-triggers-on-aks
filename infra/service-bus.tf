@@ -20,7 +20,8 @@ resource "azurerm_servicebus_namespace" "main" {
 # refuses default action Deny without IP or virtual network rules while public access is on ("InvalidNetworkRuleSetUpdate":
 # to restrict data-plane requests to private links, disable public access), so for "trusted" and "disabled" the
 # namespace takes no public traffic and keeps the trusted-services bypass; the two modes differ for the storage accounts
-# only (docs/experiments/07-event-grid-destination-access.md).
+# only. Public access alone decides: with it disabled, the service stores default action Allow whatever is sent, so Allow
+# is sent (docs/experiments/07-event-grid-destination-access.md).
 locals {
   is_service_bus_public_access_enabled = local.event_grid_destination_access == "enabled"
 }
@@ -32,7 +33,7 @@ resource "azapi_update_resource" "service_bus_network_rule_set" {
   resource_id = "${azurerm_servicebus_namespace.main.id}/networkRuleSets/default"
   body = {
     properties = {
-      defaultAction               = local.event_grid_destination_default_action
+      defaultAction               = "Allow"
       publicNetworkAccess         = local.is_service_bus_public_access_enabled ? "Enabled" : "Disabled"
       trustedServiceAccessEnabled = true
       ipRules                     = []

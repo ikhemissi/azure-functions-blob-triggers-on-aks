@@ -28,7 +28,7 @@ The spread between runs comes from the triggers' polling (the blob scan every 10
 |---|---|---|---|
 | 4: the same Event Grid event delivered twice | — | second processing logged as a duplicate, one record | second processing logged as a duplicate, one record |
 | 5: one processing pod deleted mid-batch | 200 blobs, pod deleted at 82: 200/200, no retry or duplicate | 1,500 blobs, pod deleted at 1,099: 1,500/1,500, no retry or duplicate | 1,500 blobs, pod deleted at 882: 1,500/1,500, no retry or duplicate |
-| 6: `kubectl rollout restart` 20 s into a batch of 1,000 | restarted at 224: 1,000/1,000, no retry or duplicate | the batch was done before the restart: not a test of the overlap | the same |
+| 6: `kubectl rollout restart` into a batch of 1,000 | 20 s in, at 224: 1,000/1,000, no retry or duplicate | 20 s in, the batch was already done; run again 5 s in (2026-11-19, `trusted`), during the upload: 1,000/1,000, no retry or duplicate | the same; run again 5 s in, at 420: 1,000/1,000, no retry or duplicate |
 | 7: egress blocked 60 s (NetworkPolicy), 10 blobs uploaded meanwhile | all processed 12 s after restore | 6 s after restore | 6 s after restore |
 | 8: malformed and foreign events | — | malformed JSON and a blob URL in another account: completed and logged; a message that isn't Base64: moved to `blob-events-poison` | both dead-lettered with reason `MalformedEvent` |
 | 9: blobs uploaded while the app ran no pods (60 s) | 20/20 processed 22 s after scaling back to 2 | — | — |
@@ -50,4 +50,4 @@ Both apps still had the replicas KEDA had added for scenario 2 (its cooldown is 
 - **Private networking changes no behaviour (Q1, Q12):** every scenario of 02 gave the same result through private endpoints, with exactly one processing per blob through duplicates, killed pods, a rolling restart, an outage and malformed events.
 - **Latency (Q9):** no measurable difference from phase 1. Service Bus stays the fastest (median 0.9 to 1.9 s for 20 blobs), then the polling trigger and the Storage queue, both bounded by their polling.
 - **Scaling (Q7):** KEDA's scalers reach the Storage queue and Service Bus through their private endpoints with Workload Identity; the queue app drained 500 messages in 33 s on 4 replicas.
-- **To run again:** scenario 6 for the two event-driven apps with a shorter `--restart-after` (5 s), since uploads from inside the virtual network are faster and the batches finished before the restart; the progress count it uses was fixed meanwhile (it counted the previous run's records too).
+- **Scenario 6** needed a shorter `--restart-after` (5 s) for the event-driven apps: uploads from inside the virtual network are faster, and their batches finished within 20 s. Its progress count was fixed meanwhile (it counted the previous run's records too).

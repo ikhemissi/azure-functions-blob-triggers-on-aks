@@ -153,7 +153,6 @@ run "private_trusted" {
   }
   assert {
     condition = (
-      azapi_update_resource.service_bus_network_rule_set[0].body.properties.defaultAction == "Deny" &&
       azapi_update_resource.service_bus_network_rule_set[0].body.properties.publicNetworkAccess == "Disabled" &&
       !azurerm_servicebus_namespace.main.public_network_access_enabled
     )
